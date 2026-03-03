@@ -12,8 +12,9 @@ LlamaTalk CLI is a standalone Windows terminal app for chatting with [Ollama](ht
 
 | File | Description |
 |------|-------------|
-| `LlamaTalk CLI_0.4.0_setup.exe` | Windows installer — installs to Program Files, adds `llama` to PATH |
-| `LlamaTalkCLI.exe` | Standalone EXE — run anywhere, no admin rights needed |
+| `LlamaTalk CLI_x.y.z_setup.exe` | Windows installer — installs to Program Files, adds `llama` to PATH |
+| `LlamaTalkCLI_x.y.z.exe` | Standalone EXE — run anywhere, no admin rights needed |
+| `checksums.txt` | SHA-256 checksums for verification |
 
 ---
 
@@ -22,8 +23,8 @@ LlamaTalk CLI is a standalone Windows terminal app for chatting with [Ollama](ht
 - **Local models** — connects to any [Ollama](https://ollama.com/) server on your machine or network
 - **Cloud models** — Anthropic Claude, Google Gemini, OpenAI GPT (API key required)
 - **Word-by-word display** — animated response output with configurable speed
-- **PIN protection** — optional, PBKDF2-hashed with up to 8 digits
-- **Conversation history** — persists across sessions, clears cleanly on exit
+- **PIN protection** — optional, PBKDF2-hashed; API keys and history encrypted at rest (AES-256-GCM)
+- **Conversation history** — persists across sessions, encrypted when PIN is set, clears on exit
 - **Per-model system prompts** — set a different base prompt for each model
 - **Self-updating** — `/update` checks GitHub and downloads the latest version automatically
 - **One-shot mode** — `llama "your question"` for scripting and pipelines
@@ -36,7 +37,7 @@ LlamaTalk CLI is a standalone Windows terminal app for chatting with [Ollama](ht
 
 ### Option A — Installer (Recommended)
 
-1. Download `LlamaTalk CLI_0.4.0_setup.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest)
+1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest)
 2. Run the installer (UAC prompt will appear)
 3. Open a **new** CMD or PowerShell window and type `llama`
 
@@ -94,7 +95,7 @@ llama --version                          Print version and exit
 
 ## Privacy
 
-All settings and conversation history are stored locally at `%APPDATA%\LlamaTalkCLI\`. Nothing is collected, tracked, or transmitted anywhere except to your chosen AI provider when you send a message. Cloud API keys are stored only in your local config file and are never included in exports.
+All settings and conversation history are stored locally at `%APPDATA%\LlamaTalkCLI\`. When a PIN is set, API keys and conversation history are encrypted at rest using AES-256-GCM. Config and history files are locked to your user account. Nothing is collected, tracked, or transmitted anywhere except to your chosen AI provider when you send a message. Cloud API keys are never included in exports.
 
 See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
 
@@ -106,4 +107,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-*Created by [ItsTrag1c](https://github.com/ItsTrag1c)*
+*Created by [ItsTrag1c](https://github.com/ItsTrag1c) — [MIT License](LICENSE)*
