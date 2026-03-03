@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 28" fill="#f97316" shape-rendering="crispEdges">
+  <!-- Ear -->
+  <rect x="28" y="0" width="3" height="6"/>
+  <!-- Head -->
+  <rect x="23" y="4" width="10" height="7"/>
+  <!-- Snout -->
+  <rect x="33" y="6" width="3" height="4"/>
+  <!-- Neck -->
+  <rect x="17" y="9" width="9" height="8"/>
+  <!-- Body -->
+  <rect x="1" y="15" width="23" height="8"/>
+  <!-- Tail -->
+  <rect x="0" y="15" width="3" height="5"/>
+  <!-- Legs -->
+  <rect x="16" y="23" width="3" height="5"/>
+  <rect x="11" y="23" width="3" height="5"/>
+  <rect x="6" y="23" width="3" height="5"/>
+  <rect x="1" y="23" width="3" height="5"/>
+  <!-- Eye -->
+  <rect x="30" y="6" width="2" height="2" fill="#1a1a1a"/>
+</svg>
