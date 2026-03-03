@@ -4,6 +4,22 @@ A running history of all features, fixes, and improvements made to LlamaTalk Des
 
 ---
 
+## v0.9.1 — 2026-03-03
+
+### Housekeeping
+- **MIT License added** — The project is now explicitly licensed under the MIT License.
+- **README updated** — Download links are now version-agnostic, security features (Credential Manager, path traversal prevention) are highlighted, and the license is referenced.
+
+---
+
+## v0.9.0 — 2026-03-03
+
+### Security
+- **Windows Credential Manager for sensitive hashes** — The PIN hash and all three security question hashes are now stored in the Windows Credential Manager instead of localStorage. Existing accounts are migrated automatically on the next launch — no action required. The exported profile JSON still includes these hashes so profiles can be transferred between devices.
+- **File path traversal prevention** — File read, write, and document-opening operations now reject any path that contains `..` components or attempts to escape the allowed directory. Crafted paths cannot access files outside the intended scope.
+
+---
+
 ## v0.8.9 — 2026-03-03
 
 ### Updates
@@ -438,14 +454,6 @@ A running history of all features, fixes, and improvements made to LlamaTalk Des
 ## Upcoming — Planned Changes & Features
 
 *This section reflects areas of active development and longer-term goals. Details and order of delivery may change.*
-
----
-
-### Security & Reliability
-
-- Strengthened PIN and credential security with improved hashing
-- Enhanced validation of network requests and server connections
-- Improved secure file access controls
 
 ---
 
