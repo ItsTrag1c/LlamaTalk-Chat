@@ -1,6 +1,6 @@
-import { writeFileSync, existsSync, readdirSync, unlinkSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from "fs";
 import { createInterface } from "readline";
-import { join } from "path";
+import { join, dirname } from "path";
 import { homedir, tmpdir } from "os";
 import { spawn } from "child_process";
 import { saveConfig, saveConfigWithKey, hashPin, verifyPin, getConfigPath, getHistoryPath, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveHistory, loadHistory } from "./config.js";

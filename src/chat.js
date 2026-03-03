@@ -189,7 +189,7 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
     }
 
     messages.push({ role: "assistant", content: response });
-    if (!noHistory) saveHistory(messages);
+    if (!noHistory) saveHistory(messages, encKey);
 
     console.log(`\n${ORANGE}${BOLD}${getModelLabel(config)}${RESET}`);
     await printWordByWord(response, config.wordDelay, abortController.signal);
