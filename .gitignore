@@ -1,0 +1,8 @@
+node_modules/
+dist/
+icons/
+
+# Internal build tools — not useful to external contributors
+scripts/make-changelog-pdf.js
+scripts/make-checklist-pdf.js
+scripts/install-release.js
