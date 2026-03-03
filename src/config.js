@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { dirname, join } from "path";
-import { createHash, timingSafeEqual, pbkdf2Sync, randomBytes } from "crypto";
+import { createHash, timingSafeEqual, pbkdf2Sync, randomBytes, createCipheriv, createDecipheriv } from "crypto";
 import { homedir } from "os";
+import { execSync } from "child_process";
 
 const DEFAULTS = {
   profileName: "",
@@ -20,6 +21,7 @@ const DEFAULTS = {
   apiKey_openai: "",
   enabledProviders: { anthropic: false, google: false, openai: false },
   onboardingDone: false,
+  encKeySalt: null,
 };
 
 export function getConfigPath() {
@@ -60,6 +62,16 @@ export function loadConfig() {
   }
 }
 
+function applyFilePermissions(filePath) {
+  if (process.platform !== "win32") return;
+  try {
+    execSync(
+      `icacls "${filePath}" /inheritance:r /grant:r "${process.env.USERNAME}:F"`,
+      { stdio: "ignore" }
+    );
+  } catch { /* non-fatal */ }
+}
+
 export function saveConfig(config) {
   const configPath = getConfigPath();
   const dir = dirname(configPath);
@@ -67,6 +79,102 @@ export function saveConfig(config) {
     mkdirSync(dir, { recursive: true });
   }
   writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+  applyFilePermissions(configPath);
+}
+
+// --- Encryption utilities ---
+
+export function generateEncKeySalt() {
+  return randomBytes(16).toString("hex");
+}
+
+export function deriveEncKey(pin, saltHex) {
+  return pbkdf2Sync(pin, Buffer.from(saltHex, "hex"), 100000, 32, "sha256");
+}
+
+export function encryptValue(plaintext, key) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const data = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return { v: 1, iv: iv.toString("hex"), tag: tag.toString("hex"), data: data.toString("hex") };
+}
+
+export function decryptValue(payload, key) {
+  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(payload.iv, "hex"));
+  decipher.setAuthTag(Buffer.from(payload.tag, "hex"));
+  return decipher.update(Buffer.from(payload.data, "hex")) + decipher.final("utf8");
+}
+
+export function isEncryptedPayload(v) {
+  return v && typeof v === "object" && v.v === 1 && v.iv && v.tag && v.data;
+}
+
+// Save config — if encKey provided, encrypt apiKey_* fields before writing
+export function saveConfigWithKey(config, encKey) {
+  const configPath = getConfigPath();
+  const dir = dirname(configPath);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const toWrite = { ...config };
+  if (encKey) {
+    for (const field of ["apiKey_anthropic", "apiKey_google", "apiKey_openai"]) {
+      if (toWrite[field] && typeof toWrite[field] === "string" && toWrite[field].length > 0) {
+        toWrite[field] = encryptValue(toWrite[field], encKey);
+      }
+    }
+  }
+  writeFileSync(configPath, JSON.stringify(toWrite, null, 2), "utf8");
+  applyFilePermissions(configPath);
+}
+
+// Return a copy of config with apiKey_* fields decrypted (in memory only)
+export function decryptApiKeys(config, encKey) {
+  const out = { ...config };
+  if (!encKey) return out;
+  for (const field of ["apiKey_anthropic", "apiKey_google", "apiKey_openai"]) {
+    if (isEncryptedPayload(out[field])) {
+      try {
+        out[field] = decryptValue(out[field], encKey);
+      } catch {
+        out[field] = ""; // decryption failed — wrong key or corrupted
+      }
+    }
+  }
+  return out;
+}
+
+// --- History with optional encryption ---
+
+export function saveHistory(historyArray, encKey) {
+  const histPath = getHistoryPath();
+  const dir = dirname(histPath);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const json = JSON.stringify(historyArray);
+  const payload = encKey ? JSON.stringify(encryptValue(json, encKey)) : json;
+  writeFileSync(histPath, payload, "utf8");
+  applyFilePermissions(histPath);
+}
+
+export function loadHistory(encKey) {
+  const histPath = getHistoryPath();
+  if (!existsSync(histPath)) return [];
+  try {
+    const raw = readFileSync(histPath, "utf8");
+    const parsed = JSON.parse(raw);
+    if (isEncryptedPayload(parsed)) {
+      if (!encKey) return []; // can't decrypt without key
+      try {
+        return JSON.parse(decryptValue(parsed, encKey));
+      } catch {
+        return []; // corrupted or wrong key
+      }
+    }
+    // Plaintext array — return directly (will be encrypted on next save)
+    if (Array.isArray(parsed)) return parsed;
+    return [];
+  } catch {
+    return [];
+  }
 }
 
 export function isFirstRun(config) {

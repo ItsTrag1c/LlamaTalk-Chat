@@ -1,9 +1,9 @@
-import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from "fs";
+import { writeFileSync, existsSync, readdirSync, unlinkSync } from "fs";
 import { createInterface } from "readline";
-import { join, dirname } from "path";
+import { join } from "path";
 import { homedir, tmpdir } from "os";
 import { spawn } from "child_process";
-import { saveConfig, hashPin, verifyPin, getConfigPath } from "./config.js";
+import { saveConfig, saveConfigWithKey, hashPin, verifyPin, getConfigPath, getHistoryPath, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveHistory, loadHistory } from "./config.js";
 import { getOllamaModels, CLOUD_MODELS } from "./api.js";
 import { parseSemver, semverGt, fetchLatestRelease, downloadExe } from "./updater.js";
 
@@ -206,7 +206,7 @@ function buildAllModels(ollamaModels, config) {
   return models;
 }
 
-export async function handleCommand(line, config, rl, messages, version = "") {
+export async function handleCommand(line, config, rl, messages, version = "", encKey = null) {
   const trimmed = line.trim();
   const parts = trimmed.split(/\s+/);
   const cmd = parts[0].toLowerCase();
@@ -253,7 +253,7 @@ ${BOLD}Other${RESET}
 
   // /quit, /exit
   if (cmd === "/quit" || cmd === "/exit") {
-    try { writeFileSync(getHistoryPath(), "[]", "utf8"); } catch { /* ignore */ }
+    try { saveHistory([], encKey); } catch { /* ignore */ }
     process.stdout.write("\x1b[2J\x1b[H"); // clear screen
     console.log(ORANGE + "Session ended. See you next time.\n" + RESET);
     process.exit(0);
@@ -262,9 +262,7 @@ ${BOLD}Other${RESET}
   // /clear
   if (cmd === "/clear") {
     messages.length = 0;
-    // Also clear history file
-    const histPath = getHistoryPath();
-    writeFileSync(histPath, JSON.stringify([]), "utf8");
+    saveHistory([], encKey);
     console.log(GREEN + "  Conversation cleared." + RESET);
     return { handled: true };
   }
@@ -368,7 +366,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     }
     config[`apiKey_${provider}`] = key;
     config.enabledProviders[provider] = true;
-    saveConfig(config);
+    saveConfigWithKey(config, encKey);
     console.log(GREEN + `  ${provider} API key saved and provider enabled.` + RESET);
     return { handled: true };
   }
@@ -458,18 +456,33 @@ ${DIM}Config: ${getConfigPath()}${RESET}
       }
     }
     let pinOk = false;
+    let newEncKey = encKey;
     while (!pinOk) {
       const p1 = await askMasked("  New PIN (Enter to remove): ");
       if (p1 === "") {
+        // PIN removed — decrypt everything back to plaintext
+        if (encKey) {
+          const decrypted = decryptApiKeys(config, encKey);
+          config.apiKey_anthropic = decrypted.apiKey_anthropic;
+          config.apiKey_google    = decrypted.apiKey_google;
+          config.apiKey_openai    = decrypted.apiKey_openai;
+          saveHistory(loadHistory(encKey), null);
+        }
         config.pinHash = null;
+        config.encKeySalt = null;
         saveConfig(config);
+        newEncKey = null;
         console.log(GREEN + "  PIN removed." + RESET);
         pinOk = true;
       } else {
         const p2 = await askMasked("  Confirm PIN: ");
         if (p1 === p2) {
           config.pinHash = hashPin(p1);
-          saveConfig(config);
+          config.encKeySalt = generateEncKeySalt();
+          newEncKey = deriveEncKey(p1, config.encKeySalt);
+          // Re-encrypt API keys and history with new key
+          saveConfigWithKey(config, newEncKey);
+          saveHistory(loadHistory(encKey), newEncKey);
           console.log(GREEN + "  PIN updated." + RESET);
           pinOk = true;
         } else {
@@ -477,7 +490,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
         }
       }
     }
-    return { handled: true };
+    return { handled: true, encKey: newEncKey };
   }
 
   // /set pin-frequency <freq>
@@ -742,8 +755,3 @@ ${DIM}Config: ${getConfigPath()}${RESET}
   return { handled: true };
 }
 
-function getHistoryPath() {
-  const appData = process.env.APPDATA;
-  if (appData) return join(appData, "LlamaTalkCLI", "history.json");
-  return join(homedir(), ".llamatalkcli", "history.json");
-}

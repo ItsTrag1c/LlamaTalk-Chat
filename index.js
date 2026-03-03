@@ -3,14 +3,14 @@
 process.removeAllListeners("warning");
 
 import { createInterface } from "readline";
-import { loadConfig, saveConfig, isFirstRun, pinRequired, verifyPin, needsPinMigration, hashPin } from "./src/config.js";
+import { loadConfig, saveConfig, isFirstRun, pinRequired, verifyPin, needsPinMigration, hashPin, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveConfigWithKey } from "./src/config.js";
 import { runOnboarding } from "./src/onboarding.js";
 import { runChat } from "./src/chat.js";
 import { sendMessage } from "./src/api.js";
 import { runInstall, runUninstall, ensureLlamaCmd } from "./src/install.js";
 import { fetchLatestRelease } from "./src/updater.js";
 
-const VERSION = "0.4.0";
+const VERSION = "0.5.0";
 
 const RED = "\x1b[31m";
 const ORANGE = "\x1b[38;5;208m";
@@ -161,10 +161,10 @@ async function runOneShot(message, config) {
 }
 
 // ---------------------------------------------------------------------------
-// PIN authentication
+// PIN authentication — returns the verified PIN string, or null if no PIN required
 // ---------------------------------------------------------------------------
 async function authenticate(config) {
-  if (!pinRequired(config)) return;
+  if (!pinRequired(config)) return null;
 
   console.log(ORANGE + "\nLlamaTalkCLI" + DIM + `  v${VERSION}` + RESET);
 
@@ -179,7 +179,7 @@ async function authenticate(config) {
       }
       config.lastUnlockTime = new Date().toISOString();
       saveConfig(config);
-      return;
+      return pin;
     }
     attempts++;
     if (attempts < maxAttempts) {
@@ -219,7 +219,7 @@ async function main() {
     process.exit(0);
   }
 
-  const config = loadConfig();
+  let config = loadConfig();
 
   // Apply CLI overrides
   if (args.model) config.selectedModel = args.model;
@@ -231,7 +231,11 @@ async function main() {
       console.error(RED + "Error: run 'llamatalkcli' interactively first to complete setup." + RESET);
       process.exit(1);
     }
-    await authenticate(config);
+    const pin = await authenticate(config);
+    if (pin && config.pinHash && config.encKeySalt) {
+      const encKey = deriveEncKey(pin, config.encKeySalt);
+      config = decryptApiKeys(config, encKey);
+    }
     await runOneShot(args.message, config);
     process.exit(0);
   }
@@ -250,14 +254,25 @@ async function main() {
   rl.on("close", () => process.exit(0));
 
   if (isFirstRun(config)) {
-    await runOnboarding(rl, config);
-    saveConfig(config);
+    const encKey = await runOnboarding(rl, config);
+    saveConfigWithKey(config, encKey);
     await new Promise((r) => setTimeout(r, 500));
-    await runChat(rl, config, { version: VERSION, noHistory: args.noHistory, noBanner: args.noBanner });
+    await runChat(rl, config, encKey, { version: VERSION, noHistory: args.noHistory, noBanner: args.noBanner });
     return;
   }
 
-  await authenticate(config);
+  const pin = await authenticate(config);
+
+  // Derive encryption key from PIN if available
+  let encKey = null;
+  if (pin && config.pinHash) {
+    if (!config.encKeySalt) {
+      config.encKeySalt = generateEncKeySalt();
+      saveConfig(config);
+    }
+    encKey = deriveEncKey(pin, config.encKeySalt);
+    config = decryptApiKeys(config, encKey);
+  }
 
   // Collect remote update result (give it up to 3 s if not yet done)
   const remoteUpdate = await Promise.race([
@@ -265,7 +280,7 @@ async function main() {
     new Promise((r) => setTimeout(() => r(null), 3000)),
   ]);
 
-  await runChat(rl, config, {
+  await runChat(rl, config, encKey, {
     version: VERSION,
     noHistory: args.noHistory,
     noBanner: args.noBanner,

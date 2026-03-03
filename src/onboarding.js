@@ -1,5 +1,5 @@
 import { createInterface } from "readline";
-import { hashPin } from "./config.js";
+import { hashPin, generateEncKeySalt, deriveEncKey } from "./config.js";
 import { getOllamaModels, CLOUD_MODELS } from "./api.js";
 import { printBanner } from "./llama.js";
 
@@ -68,6 +68,7 @@ export async function runOnboarding(rl, config) {
   console.log(GREEN + `  Nice to meet you, ${config.profileName}!` + RESET + "\n");
 
   // Step 2: PIN
+  let encKey = null;
   const wantPin = await ask(rl, BOLD + "Set a PIN to protect your config? (y/n): " + RESET);
   if (wantPin.trim().toLowerCase() === "y") {
     let pinOk = false;
@@ -76,6 +77,8 @@ export async function runOnboarding(rl, config) {
       const pin2 = await askMasked(BOLD + "  Confirm PIN: " + RESET);
       if (pin1 === pin2 && pin1.length > 0) {
         config.pinHash = hashPin(pin1);
+        config.encKeySalt = generateEncKeySalt();
+        encKey = deriveEncKey(pin1, config.encKeySalt);
         pinOk = true;
         console.log(GREEN + "  PIN set!" + RESET + "\n");
       } else if (pin1 !== pin2) {
@@ -168,6 +171,7 @@ export async function runOnboarding(rl, config) {
   // Done
   config.onboardingDone = true;
   console.log(ORANGE + BOLD + "All set! Starting LlamaTalkCLI...\n" + RESET);
+  return encKey;
 }
 
 function buildModelList(ollamaModels, config) {

@@ -1,9 +1,7 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { dirname } from "path";
 import { sendMessage } from "./api.js";
 import { startThinking, stopThinking, printBanner, showTokenCount, printShortcutHint } from "./llama.js";
 import { handleCommand } from "./commands.js";
-import { saveConfig, getHistoryPath } from "./config.js";
+import { saveConfig, saveHistory, loadHistory } from "./config.js";
 import { parseSemver, semverGt } from "./updater.js";
 
 const ORANGE = "\x1b[38;5;208m";
@@ -12,23 +10,6 @@ const RED = "\x1b[31m";
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
 const DIM = "\x1b[2m";
-
-function loadHistory() {
-  const path = getHistoryPath();
-  if (!existsSync(path)) return [];
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return [];
-  }
-}
-
-function saveHistory(messages) {
-  const path = getHistoryPath();
-  const dir = dirname(path);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(path, JSON.stringify(messages, null, 2), "utf8");
-}
 
 function getModelPrompt(config) {
   const model = config.selectedModel;
@@ -90,7 +71,8 @@ async function printWordByWord(text, wordDelay, signal = null) {
   process.stdout.write("\n");
 }
 
-export async function runChat(rl, config, opts = {}) {
+export async function runChat(rl, config, encKeyIn, opts = {}) {
+  let encKey = encKeyIn;
   const { noBanner = false, noHistory = false, version = "", remoteUpdate = null } = opts;
 
   if (!noBanner) printBanner(version);
@@ -108,7 +90,7 @@ export async function runChat(rl, config, opts = {}) {
     console.log(DIM + `  Welcome back, ${config.profileName}.` + RESET);
   }
 
-  const messages = noHistory ? [] : loadHistory();
+  const messages = noHistory ? [] : loadHistory(encKey);
   if (!noHistory && messages.length > 0) {
     console.log(DIM + `  Resumed conversation (${messages.length} message(s)). /clear to start fresh.\n` + RESET);
   } else {
@@ -121,7 +103,7 @@ export async function runChat(rl, config, opts = {}) {
 
   // Handle Ctrl+C gracefully
   process.on("SIGINT", () => {
-    saveHistory([]);   // clear history so next run starts a new session
+    saveHistory([], encKey);   // clear history so next run starts a new session
     saveConfig(config);
     process.stdout.write("\x1b[2J\x1b[H"); // clear screen
     console.log(ORANGE + "Session ended. See you next time.\n" + RESET);
@@ -166,8 +148,9 @@ export async function runChat(rl, config, opts = {}) {
     if (!trimmed) continue;
 
     if (trimmed.startsWith("/")) {
-      await handleCommand(trimmed, config, rl, messages, version);
-      if (!noHistory) saveHistory(messages);
+      const result = await handleCommand(trimmed, config, rl, messages, version, encKey);
+      if (result?.encKey !== undefined) encKey = result.encKey;
+      if (!noHistory) saveHistory(messages, encKey);
       continue;
     }
 
@@ -201,7 +184,7 @@ export async function runChat(rl, config, opts = {}) {
         console.log(RED + `  Error: ${err.message}` + RESET);
       }
       messages.pop();
-      if (!noHistory) saveHistory(messages);
+      if (!noHistory) saveHistory(messages, encKey);
       continue;
     }
 
@@ -214,6 +197,6 @@ export async function runChat(rl, config, opts = {}) {
     console.log("");
   }
 
-  if (!noHistory) saveHistory([]); // clear history — next run starts a new session
+  if (!noHistory) saveHistory([], encKey); // clear history — next run starts a new session
   saveConfig(config);
 }
