@@ -2,6 +2,25 @@
 
 ---
 
+## v0.5.1 — 2026-03-03
+
+### Bug Fixes
+- **Fixed `/import` crash** — The `/import` command crashed because `readFileSync` was not imported. Now loads the file correctly.
+- **Fixed `/update` crash when running as EXE** — The `/update` command crashed when running from the standalone EXE because `dirname` was not imported. Path resolution now works correctly.
+- **Fixed conversation history saved without encryption** — After a successful assistant response, conversation history was saved without passing the encryption key, causing it to be written in plaintext even when a PIN was set. History is now always encrypted when an encryption key is available.
+
+---
+
+## v0.5.0 — 2026-03-03
+
+### Security
+- **API keys encrypted at rest** — Cloud API keys (Anthropic, Google, OpenAI) are now encrypted in `config.json` using AES-256-GCM with a key derived from your PIN. Keys are decrypted in memory only after successful PIN entry and are never written back to disk in plaintext. Users without a PIN are unaffected — keys remain as before.
+- **Conversation history encrypted at rest** — `history.json` is now encrypted with the same PIN-derived key. History becomes unreadable without the correct PIN. Existing plaintext history files are transparently encrypted on the next save after upgrading.
+- **Config and history files locked to current user** — After every write to `config.json` or `history.json`, the app restricts file permissions to the current Windows user only via `icacls`, preventing other users on a shared system from reading your data.
+- **Encryption key rotation on PIN change** — Changing your PIN via `/set pin` generates a new encryption salt, derives a new key, and re-encrypts all API keys and history in one step. Removing your PIN decrypts all data back to plaintext automatically.
+
+---
+
 ## v0.4.0 — 2026-03-03
 
 ### Updates
