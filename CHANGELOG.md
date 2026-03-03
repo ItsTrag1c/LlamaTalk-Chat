@@ -4,6 +4,13 @@ A running history of all features, fixes, and improvements made to LlamaTalk Des
 
 ---
 
+## v0.8.9 — 2026-03-03
+
+### Updates
+- **Improved update asset detection** — The GitHub release installer is now found correctly regardless of whether GitHub converts spaces to dots in the filename.
+
+---
+
 ## v0.8.8 — 2026-03-03
 
 ### Updates
