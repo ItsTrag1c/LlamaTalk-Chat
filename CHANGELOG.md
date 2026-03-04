@@ -4,6 +4,14 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.7.1 — 2026-03-04
+
+### Bug Fixes
+- **Fixed streaming responses showing blank text** — Streaming used the browser-style `ReadableStream` API which doesn't work reliably in the standalone EXE. Switched to Node.js native HTTP streams so tokens arrive correctly with all backends including llama.cpp.
+- **`/clear` now clears the terminal screen** — The `/clear` command now wipes the terminal and reprints the LlamaTalkCLI banner, giving you a clean slate instead of just clearing the conversation history.
+
+---
+
 ## v0.7.0 — 2026-03-04
 
 ### New Features
@@ -330,5 +338,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-03 (v0.6.0)
+Last updated: 2026-03-04 (v0.7.1)
 
