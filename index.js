@@ -6,11 +6,11 @@ import { createInterface } from "readline";
 import { loadConfig, saveConfig, isFirstRun, pinRequired, verifyPin, needsPinMigration, hashPin, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveConfigWithKey } from "./src/config.js";
 import { runOnboarding } from "./src/onboarding.js";
 import { runChat } from "./src/chat.js";
-import { sendMessage } from "./src/api.js";
+import { sendMessage, detectBackend } from "./src/api.js";
 import { runInstall, runUninstall, ensureLlamaCmd } from "./src/install.js";
 import { fetchLatestRelease } from "./src/updater.js";
 
-const VERSION = "0.6.0";
+const VERSION = "0.7.0";
 
 const RED = "\x1b[31m";
 const ORANGE = "\x1b[38;5;208m";
@@ -262,6 +262,9 @@ async function main() {
     process.exit(0);
   }
 
+  // Detect backend type in background (Ollama vs OpenAI-compatible)
+  const backendCheckPromise = detectBackend(config.ollamaUrl).catch(() => "ollama");
+
   // Fire remote update check in the background early — result is usually ready
   // by the time auth/onboarding completes (~5–10 s window).
   const remoteCheckPromise = fetchLatestRelease().catch(() => null);
@@ -296,11 +299,14 @@ async function main() {
     config = decryptApiKeys(config, encKey);
   }
 
-  // Collect remote update result (give it up to 3 s if not yet done)
-  const remoteUpdate = await Promise.race([
-    remoteCheckPromise,
-    new Promise((r) => setTimeout(() => r(null), 3000)),
+  // Collect remote update result and backend detection (give up to 3 s if not yet done)
+  const [remoteUpdate, detectedBackend] = await Promise.all([
+    Promise.race([remoteCheckPromise, new Promise((r) => setTimeout(() => r(null), 3000))]),
+    Promise.race([backendCheckPromise, new Promise((r) => setTimeout(() => r("ollama"), 3000))]),
   ]);
+  if (detectedBackend && detectedBackend !== "unknown") {
+    config.backendType = detectedBackend;
+  }
 
   let result = await runChat(rl, config, encKey, {
     version: VERSION,

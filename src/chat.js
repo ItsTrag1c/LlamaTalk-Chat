@@ -1,4 +1,4 @@
-import { sendMessage } from "./api.js";
+import { sendMessage, streamMessage } from "./api.js";
 import { startThinking, stopThinking, printBanner, showTokenCount, printShortcutHint } from "./llama.js";
 import { handleCommand } from "./commands.js";
 import { saveConfig, saveHistory, loadHistory } from "./config.js";
@@ -191,27 +191,74 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
     startThinking();
 
     let response = "";
+    let firstToken = true;
+    let tokenQueue = [];
+    let drainTimer = null;
+    const wdMs = config.wordDelay || 0;
+
     try {
-      response = await sendMessage(messages, config, systemPrompt, abortController.signal);
-      stopThinking();
+      await streamMessage(messages, config, systemPrompt, (token) => {
+        if (firstToken) {
+          firstToken = false;
+          stopThinking();
+          process.stdout.write(`\n${ORANGE}${BOLD}${getModelLabel(config)}${RESET}\n`);
+        }
+        response += token;
+        if (wdMs > 0) {
+          tokenQueue.push(token);
+          if (!drainTimer) {
+            drainTimer = setInterval(() => {
+              if (tokenQueue.length > 0) {
+                process.stdout.write(tokenQueue.shift());
+              } else {
+                clearInterval(drainTimer);
+                drainTimer = null;
+              }
+            }, wdMs);
+          }
+        } else {
+          process.stdout.write(token);
+        }
+      }, abortController.signal);
     } catch (err) {
-      stopThinking();
+      if (firstToken) stopThinking();
+      if (drainTimer) clearInterval(drainTimer);
       stopEscWatch();
       if (cancelled) {
-        console.log(DIM + "\n  Cancelled." + RESET);
+        // Flush any remaining queued tokens before showing cancelled
+        while (tokenQueue.length > 0) process.stdout.write(tokenQueue.shift());
+        if (!firstToken) process.stdout.write("\n");
+        console.log(DIM + "  Cancelled." + RESET);
+        // Keep partial response if we got tokens
+        if (response) {
+          messages.push({ role: "assistant", content: response });
+        } else {
+          messages.pop();
+        }
       } else {
+        if (!firstToken) process.stdout.write("\n");
         console.log(RED + `  Error: ${err.message}` + RESET);
+        messages.pop();
       }
-      messages.pop();
       if (!noHistory) saveHistory(messages, encKey);
       continue;
     }
 
+    // Flush remaining queued tokens
+    if (drainTimer) clearInterval(drainTimer);
+    while (tokenQueue.length > 0) process.stdout.write(tokenQueue.shift());
+
+    // If no tokens arrived (empty response), still print the label
+    if (firstToken) {
+      stopThinking();
+      process.stdout.write(`\n${ORANGE}${BOLD}${getModelLabel(config)}${RESET}\n`);
+    }
+
+    process.stdout.write("\n");
+
     messages.push({ role: "assistant", content: response });
     if (!noHistory) saveHistory(messages, encKey);
 
-    console.log(`\n${ORANGE}${BOLD}${getModelLabel(config)}${RESET}`);
-    await printWordByWord(response, config.wordDelay, abortController.signal);
     stopEscWatch();
     console.log("");
   }

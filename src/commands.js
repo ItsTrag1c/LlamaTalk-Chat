@@ -4,7 +4,7 @@ import { join, dirname } from "path";
 import { homedir, tmpdir } from "os";
 import { spawn } from "child_process";
 import { saveConfig, saveConfigWithKey, hashPin, verifyPin, getConfigPath, getHistoryPath, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveHistory, loadHistory } from "./config.js";
-import { getOllamaModels, CLOUD_MODELS } from "./api.js";
+import { getOllamaModels, getOpenAICompatModels, detectBackend, CLOUD_MODELS } from "./api.js";
 import { parseSemver, semverGt, fetchLatestRelease, downloadExe } from "./updater.js";
 
 const ALLOWED_PROVIDERS = ["anthropic", "google", "openai"];
@@ -292,8 +292,21 @@ ${BOLD}Other${RESET}
     let ollamaModels = [];
     try {
       ollamaModels = await getOllamaModels(config.ollamaUrl);
+      if (config.backendType !== "ollama") {
+        config.backendType = "ollama";
+        saveConfig(config);
+      }
     } catch {
-      console.log(YELLOW + "  Could not reach Ollama." + RESET);
+      // Ollama failed — try OpenAI-compatible endpoint
+      try {
+        ollamaModels = await getOpenAICompatModels(config.ollamaUrl);
+        if (config.backendType !== "openai-compatible") {
+          config.backendType = "openai-compatible";
+          saveConfig(config);
+        }
+      } catch {
+        console.log(YELLOW + "  Could not reach server." + RESET);
+      }
     }
 
     const all = buildAllModels(ollamaModels, config);
@@ -341,10 +354,13 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     const newUrl = args[1].replace(/\/$/, "");
     process.stdout.write(DIM + "  Testing connection..." + RESET);
     try {
-      await getOllamaModels(newUrl);
+      const bt = await detectBackend(newUrl);
+      if (bt === "unknown") throw new Error("no compatible API found");
       config.ollamaUrl = newUrl;
+      config.backendType = bt;
       saveConfig(config);
-      process.stdout.write("\r" + GREEN + "  Ollama URL updated and connection verified." + RESET + "\n");
+      const label = bt === "openai-compatible" ? "OpenAI-compatible" : "Ollama";
+      process.stdout.write("\r" + GREEN + `  URL updated — detected ${label} backend.` + RESET + "\n");
     } catch (err) {
       process.stdout.write("\r" + YELLOW + `  Warning: could not connect to ${newUrl}: ${err.message}` + RESET + "\n");
       const proceed = await ask(rl, "  Save anyway? (y/n): ");
