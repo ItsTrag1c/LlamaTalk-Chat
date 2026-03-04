@@ -2,6 +2,18 @@
 
 ---
 
+## v0.6.0 — 2026-03-03
+
+### Security
+- **Minimum PIN length enforced** — PINs must now be at least 4 characters. Both the onboarding wizard and the `/set pin` command reject shorter PINs with a clear message.
+- **Import restricted to `.json` files** — The `/import` command now validates that the file path ends with `.json` before reading it, preventing accidental import of non-config files.
+- **Upgraded jimp dependency** — Updated jimp from v0.16 to v1.6, removing the `phin` transitive dependency and its associated network vulnerability. The CLI icon generation script has been rewritten for the new API.
+
+### New Features
+- **Session inactivity timeout** — After 30 minutes of inactivity (no input), the session locks and prompts for your PIN before continuing. Configurable via `/set timeout <0–480>` (minutes). Set to `0` to disable. Default is 30 minutes. If no PIN is set, the session simply resumes with a new readline interface.
+
+---
+
 ## v0.5.5 — 2026-03-03
 
 ### Bug Fixes
@@ -305,5 +317,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-03 (v0.5.5)
+Last updated: 2026-03-03 (v0.6.0)
 
