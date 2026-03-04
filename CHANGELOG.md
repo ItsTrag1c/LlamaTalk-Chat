@@ -2,6 +2,13 @@
 
 ---
 
+## v0.5.3 — 2026-03-03
+
+### Bug Fixes
+- **Fixed EXE showing wrong version in file properties** — The standalone EXE's Windows file properties (right-click → Properties → Details) showed the Node.js runtime version instead of the app version. The build now stamps the correct version, product name, and description into the EXE metadata.
+
+---
+
 ## v0.5.2 — 2026-03-03
 
 ### Bug Fixes
