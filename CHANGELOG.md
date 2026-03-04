@@ -5,6 +5,13 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.11.2 — 2026-03-04
+
+### Bug Fixes
+- **Fixed llama.cpp responses not appearing in chat** — llama.cpp servers that serve both Ollama-compatible and OpenAI-compatible endpoints were misidentified as native Ollama, causing the streaming parser to silently discard all tokens. Backend detection now validates the response body and correctly identifies llama.cpp as OpenAI-compatible. Added fallback parsing so tokens are extracted regardless of stream format.
+
+---
+
 ## v0.11.1 — 2026-03-04
 
 ### Bug Fixes
@@ -480,7 +487,7 @@ Last updated: 2026-03-04
 
 *This document is updated with each new version of LlamaTalk Desktop.*
 
-*Last updated: 2026-03-03 (v0.10.0)*
+*Last updated: 2026-03-04 (v0.11.2)*
 
 ---
 
