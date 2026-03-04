@@ -31,13 +31,17 @@ Run this in PowerShell to download and install the latest release. Open a new te
 ## Features
 
 - **Local models** — connects to any [Ollama](https://ollama.com/) server on your machine or network
+- **OpenAI-compatible servers** — llama.cpp, LM Studio, vLLM, and other OpenAI-compatible backends auto-detected
 - **Cloud models** — Anthropic Claude, Google Gemini, OpenAI GPT (API key required)
-- **Word-by-word display** — animated response output with configurable speed
+- **True streaming** — responses appear token-by-token in real time from all providers
+- **Token counter** — TK/S summary after every response with actual API-reported token counts
+- **Word-by-word display** — animated response output with configurable speed (throttles stream)
 - **PIN protection** — optional, PBKDF2-hashed; API keys and history encrypted at rest (AES-256-GCM)
 - **Conversation history** — persists across sessions, encrypted when PIN is set, clears on exit
 - **Per-model system prompts** — set a different base prompt for each model
 - **Self-updating** — `/update` checks GitHub and downloads the latest version automatically
 - **One-shot mode** — `llama "your question"` for scripting and pipelines
+- **Esc to cancel** — press Esc mid-stream to stop generation; partial responses are preserved
 - **Temperature control** — `/temp 0.0–1.0` applies to all providers
 - **Zero runtime dependencies** — single ~36 MB EXE includes the Node.js runtime
 
