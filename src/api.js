@@ -1,3 +1,6 @@
+import { request as httpRequest } from "http";
+import { request as httpsRequest } from "https";
+
 function validateOllamaUrl(urlStr) {
   let parsed;
   try {
@@ -225,17 +228,41 @@ export async function getOpenAICompatModels(url) {
 }
 
 // ---------------------------------------------------------------------------
-// Line-buffered SSE/NDJSON parser for streaming responses
+// Streaming HTTP request using Node.js http/https (reliable in pkg builds)
 // ---------------------------------------------------------------------------
 
-async function* streamLines(response) {
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+function streamRequest(url, options, signal = null) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const reqFn = parsed.protocol === "https:" ? httpsRequest : httpRequest;
+    const req = reqFn(url, {
+      method: options.method || "GET",
+      headers: options.headers || {},
+      signal,
+    }, (res) => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        resolve(res);
+      } else {
+        let body = "";
+        res.on("data", (c) => body += c);
+        res.on("end", () => reject(new Error(`HTTP ${res.statusCode}: ${body}`)));
+        res.on("error", reject);
+      }
+    });
+    req.on("error", reject);
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Line-buffered SSE/NDJSON parser for Node.js Readable streams
+// ---------------------------------------------------------------------------
+
+async function* streamLines(nodeStream) {
   let buf = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
+  for await (const chunk of nodeStream) {
+    buf += chunk.toString();
     while (true) {
       const nl = buf.indexOf("\n");
       if (nl === -1) break;
@@ -254,20 +281,15 @@ async function* streamLines(response) {
 async function streamOllama(messages, model, url, temperature, onToken, signal) {
   validateOllamaUrl(url);
   const base = url.replace(/\/$/, "");
-  const res = await fetchWithTimeout(
+  const res = await streamRequest(
     `${base}/api/chat`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model, messages, stream: true, options: { temperature } }),
     },
-    300_000,
     signal
   );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Ollama error ${res.status}: ${text}`);
-  }
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     try {
@@ -281,20 +303,15 @@ async function streamOllama(messages, model, url, temperature, onToken, signal) 
 async function streamOpenAICompat(messages, model, url, temperature, onToken, signal) {
   validateOllamaUrl(url);
   const base = url.replace(/\/$/, "");
-  const res = await fetchWithTimeout(
+  const res = await streamRequest(
     `${base}/v1/chat/completions`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model, messages, stream: true, temperature }),
     },
-    300_000,
     signal
   );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Server error ${res.status}: ${text}`);
-  }
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     if (!line.startsWith("data: ")) continue;
@@ -309,16 +326,16 @@ async function streamOpenAICompat(messages, model, url, temperature, onToken, si
 }
 
 async function streamAnthropic(messages, model, systemText, apiKey, temperature, onToken, signal) {
-  const body = {
+  const reqBody = {
     model,
     max_tokens: 4096,
     messages: messages.filter((m) => m.role !== "system"),
     temperature,
     stream: true,
   };
-  if (systemText) body.system = systemText;
+  if (systemText) reqBody.system = systemText;
 
-  const res = await fetchWithTimeout(
+  const res = await streamRequest(
     "https://api.anthropic.com/v1/messages",
     {
       method: "POST",
@@ -327,15 +344,10 @@ async function streamAnthropic(messages, model, systemText, apiKey, temperature,
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(reqBody),
     },
-    120_000,
     signal
   );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Anthropic error ${res.status}: ${text}`);
-  }
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     if (!line.startsWith("data: ")) continue;
@@ -356,24 +368,19 @@ async function streamGoogle(messages, model, systemText, apiKey, temperature, on
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
-  const body = { contents, generationConfig: { temperature } };
-  if (systemText) body.systemInstruction = { parts: [{ text: systemText }] };
+  const reqBody = { contents, generationConfig: { temperature } };
+  if (systemText) reqBody.systemInstruction = { parts: [{ text: systemText }] };
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-  const res = await fetchWithTimeout(
+  const res = await streamRequest(
     url,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(reqBody),
     },
-    120_000,
     signal
   );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Google error ${res.status}: ${text}`);
-  }
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     if (!line.startsWith("data: ")) continue;
@@ -386,7 +393,7 @@ async function streamGoogle(messages, model, systemText, apiKey, temperature, on
 }
 
 async function streamOpenAI(messages, model, apiKey, temperature, onToken, signal) {
-  const res = await fetchWithTimeout(
+  const res = await streamRequest(
     "https://api.openai.com/v1/chat/completions",
     {
       method: "POST",
@@ -396,13 +403,8 @@ async function streamOpenAI(messages, model, apiKey, temperature, onToken, signa
       },
       body: JSON.stringify({ model, messages, temperature, stream: true }),
     },
-    120_000,
     signal
   );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`OpenAI error ${res.status}: ${text}`);
-  }
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     if (!line.startsWith("data: ")) continue;

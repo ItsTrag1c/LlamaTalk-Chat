@@ -5,6 +5,7 @@ import { homedir, tmpdir } from "os";
 import { spawn } from "child_process";
 import { saveConfig, saveConfigWithKey, hashPin, verifyPin, getConfigPath, getHistoryPath, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveHistory, loadHistory } from "./config.js";
 import { getOllamaModels, getOpenAICompatModels, detectBackend, CLOUD_MODELS } from "./api.js";
+import { printBanner } from "./llama.js";
 import { parseSemver, semverGt, fetchLatestRelease, downloadExe } from "./updater.js";
 
 const ALLOWED_PROVIDERS = ["anthropic", "google", "openai"];
@@ -264,7 +265,9 @@ ${BOLD}Other${RESET}
   if (cmd === "/clear") {
     messages.length = 0;
     saveHistory([], encKey);
-    console.log(GREEN + "  Conversation cleared." + RESET);
+    process.stdout.write("\x1b[2J\x1b[H"); // clear screen
+    printBanner(version);
+    console.log(GREEN + "  Conversation cleared." + RESET + "\n");
     return { handled: true };
   }
 
