@@ -1276,6 +1276,47 @@ html[data-theme="light"] .sidebar-version {
   margin: 4px 0;
 }
 
+.settings-servers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0 8px;
+}
+.settings-server-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--input-bg, rgba(0,0,0,0.05));
+  border-radius: 6px;
+  border: 1px solid var(--border, #ddd);
+}
+.settings-server-url {
+  font-size: 11px;
+  color: var(--text, #222);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-server-remove {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  transition: background 0.15s;
+}
+.settings-server-remove:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
 .settings-models-list {
   display: flex;
   flex-direction: column;

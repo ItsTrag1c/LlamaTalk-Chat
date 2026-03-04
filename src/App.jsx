@@ -6,7 +6,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { openPath } from "@tauri-apps/plugin-opener";
 
-const APP_VERSION = "0.12.1";
+const APP_VERSION = "0.13.0";
 const DEFAULT_URL = "http://localhost:11434";
 
 const CLOUD_MODELS = {
@@ -433,6 +433,12 @@ export default function App() {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
   const [backendType, setBackendType] = useState(() => localStorage.getItem("backendType") || "ollama");
+  const [localServers, setLocalServers] = useState(() => JSON.parse(localStorage.getItem("localServers") || "[]"));
+  const [runningModels, setRunningModels] = useState(new Set());
+  const [modelServerMap, setModelServerMap] = useState({});
+  const [serverBackendMap, setServerBackendMap] = useState({});
+  const [draftNewServerUrl, setDraftNewServerUrl] = useState("");
+  const [newServerCheckStatus, setNewServerCheckStatus] = useState("idle"); // idle | checking | ok | error
 
   // Profile / PIN — initial values overridden by credential store startup effect
   const [isLocked, setIsLocked] = useState(false);
@@ -839,7 +845,7 @@ export default function App() {
     return result;
   }, [enabledProviders, apiKeys]);
 
-  // All models: Ollama + active cloud
+  // All models: local + active cloud
   const allModels = useMemo(() => {
     return [...models, ...Object.values(activeCloudModels).flat()];
   }, [models, activeCloudModels]);
@@ -895,6 +901,26 @@ export default function App() {
     fetchModels();
   }, []);
 
+  // Poll running models every 10 seconds (Ollama-type servers only)
+  useEffect(() => {
+    const poll = async () => {
+      const servers = [normalizeUrl(ollamaUrl), ...localServers.map(normalizeUrl)];
+      const newRunning = new Set();
+      for (const target of servers) {
+        const bt = serverBackendMap[target];
+        if (bt !== "ollama" && bt !== undefined) continue; // skip non-Ollama
+        try {
+          const text = await invoke("ollama_get", { url: `${target}/api/ps` });
+          const data = JSON.parse(text);
+          for (const rm of (data.models || [])) newRunning.add(rm.name);
+        } catch { /* ignore */ }
+      }
+      setRunningModels(newRunning);
+    };
+    const timer = setInterval(poll, 10000);
+    return () => clearInterval(timer);
+  }, [ollamaUrl, localServers, serverBackendMap]);
+
   async function checkConnection() {
     setUrlCheckStatus("checking");
     const url = normalizeUrl(draftOllamaUrl);
@@ -910,6 +936,27 @@ export default function App() {
       fetchModels(url, detected);
     } catch {
       setUrlCheckStatus("error");
+    }
+  }
+
+  async function addServer() {
+    const url = normalizeUrl(draftNewServerUrl);
+    if (!url || localServers.includes(url) || url === normalizeUrl(ollamaUrl)) {
+      setNewServerCheckStatus("error");
+      return;
+    }
+    setNewServerCheckStatus("checking");
+    try {
+      const detected = await invoke("detect_backend", { url });
+      if (detected === "unknown") throw new Error("no compatible API");
+      const updated = [...localServers, url];
+      setLocalServers(updated);
+      localStorage.setItem("localServers", JSON.stringify(updated));
+      setDraftNewServerUrl("");
+      setNewServerCheckStatus("ok");
+      fetchModels();
+    } catch {
+      setNewServerCheckStatus("error");
     }
   }
 
@@ -960,60 +1007,87 @@ export default function App() {
   }
 
   async function fetchModels(url, detectedBackend) {
-    const target = normalizeUrl(url ?? ollamaUrl);
-    let bt = detectedBackend || backendType;
+    const servers = [normalizeUrl(url ?? ollamaUrl), ...localServers.map(normalizeUrl)];
     setOllamaStatus("checking");
-    try {
-      let list;
-      if (bt === "openai-compatible") {
-        const text = await invoke("ollama_get", { url: `${target}/v1/models` });
-        const data = JSON.parse(text);
-        list = (data.data || []).map((m) => m.id);
-      } else {
-        const text = await invoke("ollama_get", { url: `${target}/api/tags` });
-        const data = JSON.parse(text);
-        list = (data.models || []).map((m) => m.name);
-      }
-      // If no explicit detection was passed and we're using default "ollama",
-      // auto-detect backend so streaming uses the right format
-      if (!detectedBackend && bt === "ollama") {
+
+    const allList = [];
+    const newModelServerMap = {};
+    const newServerBackendMap = {};
+    const newRunning = new Set();
+    const seen = new Set();
+    let anyConnected = false;
+
+    for (const target of servers) {
+      let bt = (target === normalizeUrl(url ?? ollamaUrl) && detectedBackend) ? detectedBackend : null;
+
+      // Auto-detect backend
+      if (!bt) {
         try {
-          const detected = await invoke("detect_backend", { url: target });
-          if (detected !== bt) {
-            bt = detected;
-            setBackendType(detected);
-            localStorage.setItem("backendType", detected);
-            // Re-fetch models with correct backend if type changed
-            if (detected === "openai-compatible") {
-              const text2 = await invoke("ollama_get", { url: `${target}/v1/models` });
-              const data2 = JSON.parse(text2);
-              list = (data2.data || []).map((m) => m.id);
-            }
-          }
-        } catch { /* detection failed, keep current type */ }
+          bt = await invoke("detect_backend", { url: target });
+        } catch {
+          continue;
+        }
+        if (bt === "unknown") continue;
       }
-      setModels(list);
+
+      newServerBackendMap[target] = bt;
+      anyConnected = true;
+
+      // Fetch models
+      try {
+        let list;
+        if (bt === "openai-compatible") {
+          const text = await invoke("ollama_get", { url: `${target}/v1/models` });
+          const data = JSON.parse(text);
+          list = (data.data || []).map((m) => m.id);
+        } else {
+          const text = await invoke("ollama_get", { url: `${target}/api/tags` });
+          const data = JSON.parse(text);
+          list = (data.models || []).map((m) => m.name);
+        }
+
+        for (const m of list) {
+          if (!seen.has(m)) {
+            seen.add(m);
+            allList.push(m);
+            newModelServerMap[m] = target;
+          }
+        }
+
+        // Fetch running models (Ollama-type only)
+        if (bt === "ollama") {
+          try {
+            const psText = await invoke("ollama_get", { url: `${target}/api/ps` });
+            const psData = JSON.parse(psText);
+            for (const rm of (psData.models || [])) {
+              newRunning.add(rm.name);
+            }
+          } catch { /* ignore */ }
+        }
+      } catch { /* server responded to detect but model list failed */ }
+    }
+
+    if (anyConnected) {
+      // Update primary backend type from first server
+      const primaryTarget = normalizeUrl(url ?? ollamaUrl);
+      if (newServerBackendMap[primaryTarget]) {
+        setBackendType(newServerBackendMap[primaryTarget]);
+        localStorage.setItem("backendType", newServerBackendMap[primaryTarget]);
+      }
+
+      setModels(allList);
+      setModelServerMap(newModelServerMap);
+      setServerBackendMap(newServerBackendMap);
+      setRunningModels(newRunning);
+      localStorage.setItem("modelServerMap", JSON.stringify(newModelServerMap));
       setSelectedModel((prev) => {
-        // Keep current selection if it's still available on the server
-        if (prev && list.includes(prev)) return prev;
-        // Otherwise pick first visible model, falling back to first model
+        if (prev && allList.includes(prev)) return prev;
         const hidden = JSON.parse(localStorage.getItem("hiddenModels") || "[]");
-        const visible = list.filter((m) => !hidden.includes(m));
-        return visible[0] || list[0] || "";
+        const visible = allList.filter((m) => !hidden.includes(m));
+        return visible[0] || allList[0] || "";
       });
       setOllamaStatus("connected");
-    } catch {
-      // If default "ollama" failed, try auto-detecting and retrying
-      if (!detectedBackend && bt === "ollama") {
-        try {
-          const detected = await invoke("detect_backend", { url: target });
-          if (detected !== "unknown" && detected !== "ollama") {
-            setBackendType(detected);
-            localStorage.setItem("backendType", detected);
-            return fetchModels(url, detected);
-          }
-        } catch { /* detection also failed */ }
-      }
+    } else {
       setOllamaStatus("error");
     }
   }
@@ -1284,6 +1358,7 @@ export default function App() {
       systemPrompt: localStorage.getItem("systemPrompt") || "",
       modelPrompts: localStorage.getItem("modelPrompts") || "{}",
       ollamaUrl: localStorage.getItem("ollamaUrl") || DEFAULT_URL,
+      localServers: JSON.parse(localStorage.getItem("localServers") || "[]"),
       modelName: localStorage.getItem("modelName") || "",
       theme: localStorage.getItem("theme") || "system",
       wordDelay: localStorage.getItem("wordDelay") || "20",
@@ -1322,6 +1397,11 @@ export default function App() {
       if (p.profileName) { localStorage.setItem("profileName", p.profileName); setProfileName(p.profileName); }
       if (p.systemPrompt !== undefined) { localStorage.setItem("systemPrompt", p.systemPrompt); setSystemPrompt(p.systemPrompt); setDraftPrompt(p.systemPrompt); }
       if (p.ollamaUrl) { localStorage.setItem("ollamaUrl", p.ollamaUrl); setOllamaUrl(p.ollamaUrl); }
+      if (Array.isArray(p.localServers)) {
+        const validServers = p.localServers.filter((s) => typeof s === "string" && /^https?:\/\/.+/.test(s));
+        localStorage.setItem("localServers", JSON.stringify(validServers));
+        setLocalServers(validServers);
+      }
       if (p.modelName !== undefined) { localStorage.setItem("modelName", p.modelName); setModelName(p.modelName); setDraftModelName(p.modelName); }
       if (p.theme) { localStorage.setItem("theme", p.theme); setTheme(p.theme); setDraftTheme(p.theme); }
       if (p.wordDelay !== undefined) { localStorage.setItem("wordDelay", p.wordDelay); setWordDelay(Number(p.wordDelay)); setDraftWordDelay(Number(p.wordDelay)); }
@@ -1576,10 +1656,11 @@ export default function App() {
 
       // Build streaming request params based on provider
       let streamUrl, streamHeaders, streamBody, providerType;
-      const baseUrl = normalizeUrl(ollamaUrl);
+      const baseUrl = normalizeUrl(modelServerMap[selectedModel] || ollamaUrl);
+      const effectiveBackend = serverBackendMap[baseUrl] || backendType;
 
       if (provider === "ollama") {
-        if (backendType === "openai-compatible") {
+        if (effectiveBackend === "openai-compatible") {
           providerType = "openai-compatible";
           streamUrl = `${baseUrl}/v1/chat/completions`;
           streamHeaders = JSON.stringify([["content-type", "application/json"]]);
@@ -1927,8 +2008,8 @@ export default function App() {
         <div className="profile-card">
           <div className="profile-logo-row"><LogoLlama /></div>
           <div className="profile-app-name">LlamaTalk</div>
-          <div className="profile-title">Connect to Ollama</div>
-          <div className="profile-hint">Enter your Ollama server URL to get started</div>
+          <div className="profile-title">Connect to Local Server</div>
+          <div className="profile-hint">Enter your local model server URL to get started</div>
           <div className="onboard-url-row">
             <input
               className="profile-input"
@@ -1957,7 +2038,7 @@ export default function App() {
             </div>
           </div>
           {onboardCheckStatus === "error" && (
-            <div className="profile-error">Cannot connect. Make sure Ollama is running: <code>ollama serve</code></div>
+            <div className="profile-error">Cannot connect. Make sure your local model server is running.</div>
           )}
           {onboardCheckStatus === "ok" && (
             <div className="profile-saved">Connected! Opening app...</div>
@@ -2076,11 +2157,11 @@ export default function App() {
                   disabled={visibleModels.length === 0}
                 >
                   {visibleModels.length === 0 && <option>No models found</option>}
-                  {/* Local Ollama models */}
+                  {/* Local models */}
                   {models.filter((m) => !hiddenModels.includes(m)).length > 0 && (
-                    <optgroup label="Local (Ollama)">
+                    <optgroup label="Local Models">
                       {models.filter((m) => !hiddenModels.includes(m)).map((m) => (
-                        <option key={m} value={m}>{m}</option>
+                        <option key={m} value={m}>{runningModels.has(m) ? `🟢 ${m}` : m}</option>
                       ))}
                     </optgroup>
                   )}
@@ -2098,9 +2179,9 @@ export default function App() {
                   className={`status-dot ${ollamaStatus}`}
                   title={
                     ollamaStatus === "connected"
-                      ? "Ollama connected"
+                      ? "Local server connected"
                       : ollamaStatus === "error"
-                      ? "Cannot reach Ollama"
+                      ? "Cannot reach local server"
                       : "Checking..."
                   }
                 />
@@ -2203,6 +2284,50 @@ export default function App() {
                 />
               )}
             </div>
+
+            <div className="settings-label">Additional Local Servers</div>
+            {localServers.length > 0 ? (
+              <div className="settings-servers-list">
+                {localServers.map((s) => (
+                  <div key={s} className="settings-server-row">
+                    <span className="settings-server-url">{s}</span>
+                    <button className="settings-server-remove" onClick={() => {
+                      const updated = localServers.filter((u) => u !== s);
+                      setLocalServers(updated);
+                      localStorage.setItem("localServers", JSON.stringify(updated));
+                      fetchModels();
+                    }}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="settings-models-empty">No additional servers</div>
+            )}
+            <div className="settings-url-row">
+              <input
+                className="settings-input"
+                value={draftNewServerUrl}
+                onChange={(e) => { setDraftNewServerUrl(e.target.value); setNewServerCheckStatus("idle"); }}
+                placeholder="http://other-server:11434"
+                spellCheck={false}
+                onKeyDown={(e) => { if (e.key === "Enter") addServer(); }}
+              />
+              <button
+                className="check-btn"
+                onClick={addServer}
+                disabled={newServerCheckStatus === "checking" || !draftNewServerUrl.trim()}
+              >
+                {newServerCheckStatus === "checking" ? "..." : "Add"}
+              </button>
+              {newServerCheckStatus !== "idle" && (
+                <span
+                  className={`status-dot ${newServerCheckStatus === "ok" ? "connected" : newServerCheckStatus}`}
+                  title={newServerCheckStatus === "ok" ? "Added" : newServerCheckStatus === "error" ? "Cannot connect" : "Checking..."}
+                />
+              )}
+            </div>
+
+            <div className="settings-divider" />
 
             <div className="settings-label">Available Models</div>
             {models.length === 0 ? (
@@ -2445,7 +2570,7 @@ export default function App() {
       <main className="main">
         {ollamaStatus === "error" && (
           <div className="error-banner">
-            <span>Cannot connect to Ollama. Make sure it's running: <code>ollama serve</code></span>
+            <span>Cannot connect to local server. Make sure it's running.</span>
             <button className="error-retry" onClick={fetchModels}>Retry</button>
           </div>
         )}
@@ -2471,7 +2596,7 @@ export default function App() {
         {messages.length === 0 ? (
           <div className="empty-state">
             <h2>What can I help you with?</h2>
-            <p>Start a conversation with your local Ollama model.</p>
+            <p>Start a conversation with your local model.</p>
             {selectedModel && (
               <span className="empty-model-badge">{selectedModel}</span>
             )}
@@ -2547,7 +2672,7 @@ export default function App() {
             <div className="input-privacy-notice">
               {isCloudModel
                 ? `Messages sent to ${getProvider(selectedModel) === "anthropic" ? "Anthropic" : getProvider(selectedModel) === "google" ? "Google" : "OpenAI"} — see their privacy policy`
-                : "Messages sent only to your local Ollama server"}
+                : "Messages sent only to your local server"}
             </div>
           )}
           <div className="input-wrap">
@@ -2567,7 +2692,7 @@ export default function App() {
               onKeyDown={handleKeyDown}
               placeholder={
                 ollamaStatus === "error"
-                  ? "Ollama is not running..."
+                  ? "Local server is not running..."
                   : selectedModel
                   ? `Message ${modelName || selectedModel}...`
                   : "Select a model to start..."

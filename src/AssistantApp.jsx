@@ -220,6 +220,8 @@ export default function AssistantApp() {
     try {
       const wordDelayMs = Number(localStorage.getItem("wordDelay") ?? 20);
       const bt = localStorage.getItem("backendType") || "ollama";
+      const msm = JSON.parse(localStorage.getItem("modelServerMap") || "{}");
+      const serverUrl = msm[selectedModel] || ollamaUrl;
 
       // Build API messages from all completed exchanges (exclude empty assistant placeholder)
       const history = updatedMessages
@@ -236,12 +238,12 @@ export default function AssistantApp() {
       let streamUrl, streamHeaders, providerType, streamBody;
       if (bt === "openai-compatible") {
         providerType = "openai-compatible";
-        streamUrl = `${ollamaUrl}/v1/chat/completions`;
+        streamUrl = `${serverUrl}/v1/chat/completions`;
         streamHeaders = JSON.stringify([["content-type", "application/json"]]);
         streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, stream: true });
       } else {
         providerType = "ollama";
-        streamUrl = `${ollamaUrl}/api/chat`;
+        streamUrl = `${serverUrl}/api/chat`;
         streamHeaders = JSON.stringify([["content-type", "application/json"]]);
         streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, stream: true });
       }
