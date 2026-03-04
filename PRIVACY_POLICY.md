@@ -1,7 +1,7 @@
 # LlamaTalk — Privacy Policy
 
 **Effective Date:** March 2, 2026
-**Last Updated:** March 4, 2026 (rev. 4)
+**Last Updated:** March 4, 2026 (rev. 5)
 
 ---
 
@@ -34,6 +34,7 @@ LlamaTalk Desktop stores the following data **locally on your device only**:
   - Temperature setting
   - Hidden models list
   - Enabled cloud providers
+  - Detected backend type (Ollama or OpenAI-compatible)
 
 **Deletion log:** When you clear your data via "Clear Data & Users," a one-line timestamped entry is appended to `LlamaTalk-deletion-log.txt` in your application data folder. This file exists solely to give you an audit record of your own deletions and is never transmitted anywhere.
 
@@ -74,14 +75,17 @@ The LlamaTalk suite **does not:**
 
 ## Message and Prompt Privacy
 
-### Local Ollama Models (Default)
+### Local AI Models (Default)
 
-When you send a message to a local Ollama model:
+Both apps support **Ollama** and **OpenAI-compatible local servers** (llama.cpp, LM Studio, vLLM, and similar). The backend type is auto-detected — no manual configuration is needed.
 
-1. Your message is sent **only to your local Ollama server** (typically running at `http://localhost:11434`)
+When you send a message to a local model:
+
+1. Your message is sent **only to your local server** (typically running at `http://localhost:11434` or another address you configure)
 2. Your message is **not** sent to any cloud AI service
 3. Your message is **not** logged, recorded, or shared externally
-4. The response from Ollama is received locally and stored in your conversation history
+4. The response is received locally and stored in your conversation history
+5. Token usage metadata returned by the server (token counts, generation speed) is used **locally only** for the real-time TK/S display — it is never transmitted anywhere
 
 ### Cloud AI Providers (Optional)
 
@@ -94,6 +98,7 @@ When you send a message to a cloud model:
 3. LlamaTalk Desktop displays a notice in the chat area identifying which provider will receive your message, and updates that notice when you switch models
 4. Your API keys are stored locally — they are **never** sent anywhere except directly to the API endpoint of the provider they belong to
 5. API keys are **never** included in exported profile files
+6. Token usage metadata returned by the provider (input/output token counts) is used **locally only** for display — it is never stored or transmitted
 
 You remain in full control of which providers are enabled and can disable them at any time in Settings.
 
@@ -147,12 +152,12 @@ GitHub will log the IP address of the request as with any public API call — th
 ### Network & Application Security
 
 - **HTTPS Enforcement** — All cloud API communication uses HTTPS. Endpoints are hardcoded and cannot be downgraded.
-- **Ollama URL Validation** — The Ollama server URL is validated before every request. Non-HTTP/HTTPS schemes and link-local addresses (169.254.x.x) are rejected.
+- **Server URL Validation** — The local server URL (Ollama or OpenAI-compatible) is validated before every request. Non-HTTP/HTTPS schemes and link-local addresses (169.254.x.x) are rejected.
 - **Request Timeouts** — All network calls have enforced timeouts to prevent indefinite hangs (Ollama: 120s, cloud providers: 60s, connection checks: 10–15s).
 - **Content Security Policy (Desktop)** — Strict CSP prevents inline scripts, eval(), and unauthorized network connections.
 - **Capability Scoping (Desktop)** — Tauri capabilities limit what file and system operations the app can perform to the minimum required.
 - **Update Integrity** — Software updates downloaded from GitHub are verified against SHA-256 checksums before being applied.
-- **Cancel Propagation (CLI)** — Pressing Esc during a response cancels the underlying network request via AbortController, ensuring no orphaned requests continue.
+- **Stream Cancellation** — Both apps support cancelling an in-progress response. Desktop's Stop button and CLI's Esc key immediately cancel the active stream on the server side, ensuring no orphaned requests continue. Partial responses are preserved in the conversation.
 - **API Key Exclusion from Exports** — Cloud API keys are stripped from all exported profile files in both apps.
 - **Import Validation** — Imported profiles are validated for type, format, and value constraints before being applied. The CLI restricts imports to `.json` files only.
 
@@ -235,6 +240,7 @@ LlamaTalk is designed with privacy-by-default principles consistent with:
 - **2026-03-03 (rev. 2)** — Corrected CLI PIN hashing (upgraded to PBKDF2 in v0.3.6; legacy migration noted). Added Security Reviews section. Added cancel propagation note. Added dependency audit reference in Third-Party Dependencies section.
 - **2026-03-03 (rev. 3)** — Major update for Desktop v0.10.0 and CLI v0.6.0. Added conversation encryption at rest (Desktop: AES-256-GCM, key in Credential Manager). Added API key and history encryption (CLI: AES-256-GCM, PIN-derived key). Documented Windows Credential Manager usage for Desktop credentials. Added CLI session inactivity timeout. Added CLI PIN minimum length. Added CLI file permissions (icacls). Added CLI `.json`-only import restriction. Reorganized Security Measures into Encryption & Security with subsections. Updated Data You Control with encryption control. Updated Legal Compliance with encryption and storage limitation references.
 - **2026-03-04 (rev. 4)** — Added Automatic Update Checks section documenting the startup GitHub API check in both apps (the only automatic network activity). Clarified "Data We Do NOT Collect" with cross-reference to update check disclosure. Covers Desktop v0.12.1 and CLI v0.8.1.
+- **2026-03-04 (rev. 5)** — Added OpenAI-compatible local server support (llama.cpp, LM Studio, vLLM) to local model privacy section. Renamed "Local Ollama Models" to "Local AI Models" to reflect broader backend support. Added token usage metadata disclosure (used locally for TK/S display, never transmitted). Added `backendType` to Desktop stored settings. Updated stream cancellation to cover both apps (Desktop Stop button + CLI Esc). Updated URL validation to cover all local backends. Covers Desktop v0.12.1 and CLI v0.8.1.
 
 ---
 
