@@ -4,6 +4,14 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.8.0 — 2026-03-04
+
+### New Features
+- **Tokens per second (TK/S) after every response** — After each model response, a summary line shows the output token count and generation speed (e.g. `● 156 tokens · 31.2 tk/s`). When using Ollama, the speed is calculated from the server-reported `eval_duration` for accuracy that excludes network latency. Cloud providers use wall-clock timing.
+- **Actual API token counts** — All five providers (Ollama, OpenAI-compatible, Anthropic, Google, OpenAI) now return real token usage data from their streaming responses instead of the previous character-based estimation. The token counter before the input prompt shows exact counts (e.g. `● 206 tokens`) after the first response, or estimated counts (with `~` prefix) before any response is received.
+
+---
+
 ## v0.7.5 — 2026-03-04
 
 ### Improvements
@@ -369,5 +377,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-04 (v0.7.5)
+Last updated: 2026-03-04 (v0.8.0)
 
