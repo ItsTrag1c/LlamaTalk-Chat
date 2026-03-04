@@ -4,6 +4,14 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.7.5 — 2026-03-04
+
+### Improvements
+- **Auto-detect running model on startup** — The app now queries your backend for the currently loaded model when it launches and auto-switches to it, so your CLI always reflects what's actually running. Works with Ollama (`/api/ps`), llama.cpp, LM Studio, and other OpenAI-compatible servers. Skipped when you explicitly pass `--model` on the command line.
+- **Responsive banner** — The startup banner now adapts to narrow terminals (under 70 columns) by switching to a compact header instead of wrapping. Resizing the terminal window while at the input prompt redraws the banner and hint bar at the new width.
+
+---
+
 ## v0.7.4 — 2026-03-04
 
 ### Bug Fixes
@@ -361,5 +369,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-04 (v0.7.3)
+Last updated: 2026-03-04 (v0.7.5)
 
