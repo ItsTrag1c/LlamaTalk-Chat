@@ -208,10 +208,25 @@ export async function sendMessage(messages, config, systemPrompt, signal = null)
 
 export async function detectBackend(url) {
   const base = url.replace(/\/$/, "");
+  let looksOllama = false;
   try {
     const res = await fetchWithTimeout(`${base}/api/tags`, {}, 10_000);
-    if (res.ok) return "ollama";
+    if (res.ok) {
+      const data = await res.json().catch(() => null);
+      if (data && Array.isArray(data.models)) {
+        looksOllama = true;
+      }
+    }
   } catch { /* try next */ }
+  // If /api/tags looks valid, also probe /v1/models — if BOTH respond,
+  // prefer openai-compatible (llama.cpp serves both but streams SSE).
+  if (looksOllama) {
+    try {
+      const res = await fetchWithTimeout(`${base}/v1/models`, {}, 10_000);
+      if (res.ok) return "openai-compatible";
+    } catch { /* fall through to ollama */ }
+    return "ollama";
+  }
   try {
     const res = await fetchWithTimeout(`${base}/v1/models`, {}, 10_000);
     if (res.ok) return "openai-compatible";
@@ -296,7 +311,18 @@ async function streamOllama(messages, model, url, temperature, onToken, signal) 
       const obj = JSON.parse(line);
       if (obj.message?.content) onToken(obj.message.content);
       if (obj.done) break;
-    } catch { /* skip malformed lines */ }
+    } catch {
+      // Fallback: llama.cpp may send SSE format (data: {...}) even on /api/chat
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") break;
+        try {
+          const obj = JSON.parse(data);
+          const token = obj.choices?.[0]?.delta?.content || obj.message?.content;
+          if (token) onToken(token);
+        } catch { /* skip */ }
+      }
+    }
   }
 }
 
@@ -426,7 +452,18 @@ export async function streamMessage(messages, config, systemPrompt, onToken, sig
   const model = config.selectedModel;
   const provider = getProvider(model, config);
   const temperature = config.temperature ?? 0.7;
-  const bt = config.backendType || "ollama";
+  let bt = config.backendType || "ollama";
+
+  // Auto-detect backend if never explicitly set
+  if (provider === "ollama" && !config.backendType) {
+    try {
+      const detected = await detectBackend(config.ollamaUrl);
+      if (detected !== "unknown") {
+        bt = detected;
+        config.backendType = detected;
+      }
+    } catch { /* use default */ }
+  }
 
   if (provider === "ollama") {
     const msgs = systemPrompt
