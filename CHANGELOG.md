@@ -4,6 +4,14 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.8.1 — 2026-03-04
+
+### Bug Fixes
+- **Fixed crash after model response** — A scoping error caused `ReferenceError: result is not defined` after every streamed response, crashing the chat loop. The TK/S summary line now correctly accesses the stream result.
+- **Fixed inaccurate token counts for OpenAI-compatible backends** — When using llama.cpp, LM Studio, vLLM, or other OpenAI-compatible servers, the token counter was falling back to event-counted tokens instead of actual API-reported counts. The streaming request now includes `stream_options: { include_usage: true }`, so backends that support it return real usage data in the final chunk.
+
+---
+
 ## v0.8.0 — 2026-03-04
 
 ### New Features
@@ -377,5 +385,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-04 (v0.8.0)
+Last updated: 2026-03-04 (v0.8.1)
 
