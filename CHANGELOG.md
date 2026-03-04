@@ -1,6 +1,17 @@
 # Changelog — LlamaTalkCLI
 
-Last updated: 2026-03-04
+Last updated: 2026-03-04 (v0.9.0)
+
+---
+
+## v0.9.0 — 2026-03-04
+
+### New Features
+- **Multi-server support** — Connect to multiple local model servers simultaneously. Use `/set add-server <url>` to add a server, `/set remove-server <url>` to remove one, and `/set servers` to list all configured servers. Models from all servers are aggregated in `/models` and chat is routed to the correct server automatically.
+- **Running model detection** — The `/models` command now shows a `[running]` tag next to models currently loaded in memory on Ollama servers.
+
+### Improvements
+- **"Ollama" renamed to "Local Server"** — All user-facing text has been updated: onboarding says "Local server URL" and "Testing server connection," `/set ollama-url` is now `/set server-url` (old name still works as alias), `/settings` shows "Server URL," and `/help` lists the new commands.
 
 ---
 
@@ -385,5 +396,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-04 (v0.8.1)
+Last updated: 2026-03-04 (v0.9.0)
 
