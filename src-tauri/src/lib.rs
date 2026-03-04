@@ -198,8 +198,8 @@ fn get_documents_dir(app: tauri::AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn exit_app() {
-    std::process::exit(0);
+fn exit_app(app: tauri::AppHandle) {
+    app.exit(0);
 }
 
 #[tauri::command]
@@ -310,7 +310,7 @@ async fn check_for_update_remote(current_version: String) -> Option<String> {
 }
 
 #[tauri::command]
-async fn download_and_install(url: String, version: String, checksum_url: String) -> Result<(), String> {
+async fn download_and_install(app: tauri::AppHandle, url: String, version: String, checksum_url: String) -> Result<(), String> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(300))
         .build()
@@ -364,16 +364,18 @@ async fn download_and_install(url: String, version: String, checksum_url: String
         .args(["/c", "start", "", dest.to_str().unwrap_or_default()])
         .spawn()
         .map_err(|e| e.to_string())?;
-    std::process::exit(0);
+    app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]
-fn launch_installer(path: String) -> Result<(), String> {
+fn launch_installer(app: tauri::AppHandle, path: String) -> Result<(), String> {
     std::process::Command::new("cmd")
         .args(["/c", "start", "", &path])
         .spawn()
         .map_err(|e| e.to_string())?;
-    std::process::exit(0);
+    app.exit(0);
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -414,7 +416,7 @@ pub fn run() {
                     .menu(&menu)
                     .on_menu_event(|app, event| {
                         match event.id.as_ref() {
-                            "quit" => std::process::exit(0),
+                            "quit" => { app.exit(0); }
                             "toggle-assistant" => {
                                 if let Some(w) = app.get_webview_window("llama-assistant") {
                                     let visible = w.is_visible().unwrap_or(false);
