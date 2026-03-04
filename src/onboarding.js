@@ -1,6 +1,6 @@
 import { createInterface } from "readline";
 import { hashPin, generateEncKeySalt, deriveEncKey } from "./config.js";
-import { getOllamaModels, CLOUD_MODELS } from "./api.js";
+import { getOllamaModels, detectBackend, getOpenAICompatModels, CLOUD_MODELS } from "./api.js";
 import { printBanner } from "./llama.js";
 
 const ORANGE = "\x1b[38;5;208m";
@@ -91,24 +91,30 @@ export async function runOnboarding(rl, config) {
     console.log(DIM + "  Skipped — you can set a PIN later with /set pin\n" + RESET);
   }
 
-  // Step 3: Ollama URL
+  // Step 3: Local server URL
   const urlInput = await ask(
     rl,
-    BOLD + `Ollama server URL [${config.ollamaUrl}]: ` + RESET
+    BOLD + `Local server URL [${config.ollamaUrl}]: ` + RESET
   );
   if (urlInput.trim()) {
     config.ollamaUrl = urlInput.trim().replace(/\/$/, "");
   }
 
-  // Step 4: Test Ollama connection
-  process.stdout.write(DIM + "  Testing Ollama connection..." + RESET);
+  // Step 4: Test server connection
+  process.stdout.write(DIM + "  Testing server connection..." + RESET);
   let ollamaModels = [];
   try {
-    ollamaModels = await getOllamaModels(config.ollamaUrl);
-    process.stdout.write("\r" + GREEN + "  Ollama connected! " + ollamaModels.length + " model(s) found." + RESET + "\n\n");
+    const bt = await detectBackend(config.ollamaUrl);
+    if (bt === "openai-compatible") {
+      ollamaModels = await getOpenAICompatModels(config.ollamaUrl);
+    } else {
+      ollamaModels = await getOllamaModels(config.ollamaUrl);
+    }
+    if (bt !== "unknown") config.backendType = bt;
+    process.stdout.write("\r" + GREEN + "  Server connected! " + ollamaModels.length + " model(s) found." + RESET + "\n\n");
   } catch (err) {
-    process.stdout.write("\r" + YELLOW + "  Could not connect to Ollama: " + err.message + RESET + "\n");
-    console.log(DIM + "  You can update the URL later with /set ollama-url <url>\n" + RESET);
+    process.stdout.write("\r" + YELLOW + "  Could not connect to server: " + err.message + RESET + "\n");
+    console.log(DIM + "  You can update the URL later with /set server-url <url>\n" + RESET);
   }
 
   // Step 5: Cloud API keys

@@ -4,7 +4,7 @@ import { join, dirname } from "path";
 import { homedir, tmpdir } from "os";
 import { spawn } from "child_process";
 import { saveConfig, saveConfigWithKey, hashPin, verifyPin, getConfigPath, getHistoryPath, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveHistory, loadHistory } from "./config.js";
-import { getOllamaModels, getOpenAICompatModels, detectBackend, CLOUD_MODELS } from "./api.js";
+import { getOllamaModels, getOpenAICompatModels, detectBackend, getAllLocalModels, CLOUD_MODELS } from "./api.js";
 import { printBanner } from "./llama.js";
 import { parseSemver, semverGt, fetchLatestRelease, downloadExe } from "./updater.js";
 
@@ -102,6 +102,19 @@ function validateImportedConfig(imported) {
       errors.push("hiddenModels: must be an array of strings (max 500 items, each max 200 chars)");
     } else {
       clean.hiddenModels = v;
+    }
+  }
+
+  if ("localServers" in imported) {
+    const v = imported.localServers;
+    if (
+      !Array.isArray(v) ||
+      v.length > 20 ||
+      v.some((x) => typeof x !== "string" || x.length > 500 || !/^https?:\/\/.+/.test(x))
+    ) {
+      errors.push("localServers: must be an array of valid http/https URLs (max 20)");
+    } else {
+      clean.localServers = v.map((u) => u.replace(/\/$/, ""));
     }
   }
 
@@ -248,7 +261,10 @@ ${BOLD}Chat${RESET}
 
 ${BOLD}Settings${RESET}
   ${ORANGE}/settings${RESET}                      Show current config
-  ${ORANGE}/set ollama-url <url>${RESET}           Update Ollama server URL
+  ${ORANGE}/set server-url <url>${RESET}           Update primary server URL
+  ${ORANGE}/set add-server <url>${RESET}           Add an additional local server
+  ${ORANGE}/set remove-server <url>${RESET}        Remove an additional server
+  ${ORANGE}/set servers${RESET}                    List all configured servers
   ${ORANGE}/set api-key <provider> <key>${RESET}  Set API key (anthropic/google/openai)
   ${ORANGE}/set provider enable|disable <p>${RESET} Toggle a cloud provider
   ${ORANGE}/set word-delay <ms>${RESET}           Set word-by-word delay (0–500ms)
@@ -314,27 +330,20 @@ ${BOLD}Other${RESET}
 
   // /models
   if (cmd === "/models") {
-    let ollamaModels = [];
+    let localModels = [];
+    let runningModels = new Set();
     try {
-      ollamaModels = await getOllamaModels(config.ollamaUrl);
-      if (config.backendType !== "ollama") {
-        config.backendType = "ollama";
-        saveConfig(config);
-      }
+      const result = await getAllLocalModels(config);
+      localModels = result.allModels;
+      runningModels = result.runningModels;
+      config.modelServerMap = result.modelServerMap;
+      config.serverBackendMap = result.serverBackendMap;
+      saveConfig(config);
     } catch {
-      // Ollama failed — try OpenAI-compatible endpoint
-      try {
-        ollamaModels = await getOpenAICompatModels(config.ollamaUrl);
-        if (config.backendType !== "openai-compatible") {
-          config.backendType = "openai-compatible";
-          saveConfig(config);
-        }
-      } catch {
-        console.log(YELLOW + "  Could not reach server." + RESET);
-      }
+      console.log(YELLOW + "  Could not reach server." + RESET);
     }
 
-    const all = buildAllModels(ollamaModels, config);
+    const all = buildAllModels(localModels, config);
     if (all.length === 0) {
       console.log(YELLOW + "  No models available." + RESET);
     } else {
@@ -344,7 +353,8 @@ ${BOLD}Other${RESET}
         const nick = config.modelNickname?.[m];
         const suffix = nick ? ` ${DIM}(${nick})${RESET}` : "";
         const marker = isCurrent ? GREEN + " ◀ current" + RESET : "";
-        console.log(`  ${ORANGE}•${RESET} ${m}${suffix}${marker}`);
+        const running = runningModels.has(m) ? GREEN + " [running]" + RESET : "";
+        console.log(`  ${ORANGE}•${RESET} ${m}${suffix}${running}${marker}`);
       }
       console.log("");
     }
@@ -360,7 +370,7 @@ ${ORANGE}${BOLD}Current Settings${RESET}
   PIN:            ${config.pinHash ? GREEN + "set" + RESET : DIM + "none" + RESET}
   PIN frequency:  ${config.pinFrequency}
   Model:          ${config.selectedModel || DIM + "(none)" + RESET}
-  Ollama URL:     ${config.ollamaUrl}
+  Server URL:     ${config.ollamaUrl}${(config.localServers && config.localServers.length > 0) ? "\n  Extra servers:  " + config.localServers.join(", ") : ""}
   Word delay:     ${config.wordDelay}ms
   Hidden models:  ${config.hiddenModels.length > 0 ? config.hiddenModels.join(", ") : DIM + "none" + RESET}
 
@@ -374,8 +384,8 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     return { handled: true };
   }
 
-  // /set ollama-url <url>
-  if (cmd === "/set" && args[0] === "ollama-url" && args[1]) {
+  // /set server-url <url> (alias: ollama-url)
+  if (cmd === "/set" && (args[0] === "server-url" || args[0] === "ollama-url") && args[1]) {
     const newUrl = args[1].replace(/\/$/, "");
     process.stdout.write(DIM + "  Testing connection..." + RESET);
     try {
@@ -395,6 +405,63 @@ ${DIM}Config: ${getConfigPath()}${RESET}
         console.log(GREEN + "  URL saved." + RESET);
       }
     }
+    return { handled: true };
+  }
+
+  // /set add-server <url>
+  if (cmd === "/set" && args[0] === "add-server" && args[1]) {
+    const newUrl = args[1].replace(/\/$/, "");
+    process.stdout.write(DIM + "  Testing connection..." + RESET);
+    try {
+      const bt = await detectBackend(newUrl);
+      if (bt === "unknown") throw new Error("no compatible API found");
+      if (!config.localServers) config.localServers = [];
+      if (config.localServers.includes(newUrl) || newUrl === config.ollamaUrl) {
+        process.stdout.write("\r" + YELLOW + "  Server already configured." + RESET + "\n");
+      } else {
+        config.localServers.push(newUrl);
+        saveConfig(config);
+        const label = bt === "openai-compatible" ? "OpenAI-compatible" : "Ollama";
+        process.stdout.write("\r" + GREEN + `  Added ${newUrl} (${label} backend).` + RESET + "\n");
+      }
+    } catch (err) {
+      process.stdout.write("\r" + YELLOW + `  Could not connect to ${newUrl}: ${err.message}` + RESET + "\n");
+      const proceed = await ask(rl, "  Add anyway? (y/n): ");
+      if (proceed.trim().toLowerCase() === "y") {
+        if (!config.localServers) config.localServers = [];
+        config.localServers.push(newUrl);
+        saveConfig(config);
+        console.log(GREEN + "  Server added." + RESET);
+      }
+    }
+    return { handled: true };
+  }
+
+  // /set remove-server <url>
+  if (cmd === "/set" && args[0] === "remove-server" && args[1]) {
+    const url = args[1].replace(/\/$/, "");
+    if (!config.localServers || !config.localServers.includes(url)) {
+      console.log(YELLOW + `  Server not found: ${url}` + RESET);
+    } else {
+      config.localServers = config.localServers.filter((s) => s !== url);
+      saveConfig(config);
+      console.log(GREEN + `  Removed ${url}.` + RESET);
+    }
+    return { handled: true };
+  }
+
+  // /set servers
+  if (cmd === "/set" && args[0] === "servers" && args.length === 1) {
+    console.log(`\n${BOLD}Configured Servers${RESET}`);
+    console.log(`  ${ORANGE}Primary:${RESET} ${config.ollamaUrl}`);
+    if (config.localServers && config.localServers.length > 0) {
+      for (const s of config.localServers) {
+        console.log(`  ${ORANGE}•${RESET} ${s}`);
+      }
+    } else {
+      console.log(DIM + "  No additional servers." + RESET);
+    }
+    console.log("");
     return { handled: true };
   }
 

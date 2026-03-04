@@ -16,6 +16,7 @@ const DEFAULTS = {
   wordDelay: 20,
   temperature: 0.7,
   hiddenModels: [],
+  localServers: [],
   apiKey_anthropic: "",
   apiKey_google: "",
   apiKey_openai: "",

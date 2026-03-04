@@ -1,15 +1,15 @@
 import { request as httpRequest } from "http";
 import { request as httpsRequest } from "https";
 
-function validateOllamaUrl(urlStr) {
+function validateServerUrl(urlStr) {
   let parsed;
   try {
     parsed = new URL(urlStr);
   } catch {
-    throw new Error(`Invalid Ollama URL: ${urlStr}`);
+    throw new Error(`Invalid server URL: ${urlStr}`);
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("Ollama URL must use http or https");
+    throw new Error("Server URL must use http or https");
   }
   if (/^169\.254\./i.test(parsed.hostname)) {
     throw new Error("Link-local addresses are not permitted");
@@ -52,7 +52,7 @@ export function getProvider(model, config) {
 }
 
 export async function getOllamaModels(url) {
-  validateOllamaUrl(url);
+  validateServerUrl(url);
   const base = url.replace(/\/$/, "");
   const res = await fetchWithTimeout(`${base}/api/tags`, {}, 10_000);
   if (!res.ok) throw new Error(`Ollama returned ${res.status}`);
@@ -61,7 +61,7 @@ export async function getOllamaModels(url) {
 }
 
 export async function getRunningOllamaModels(url) {
-  validateOllamaUrl(url);
+  validateServerUrl(url);
   const base = url.replace(/\/$/, "");
   const res = await fetchWithTimeout(`${base}/api/ps`, {}, 5_000);
   if (!res.ok) throw new Error(`Ollama returned ${res.status}`);
@@ -69,8 +69,62 @@ export async function getRunningOllamaModels(url) {
   return (data.models || []).map((m) => m.name);
 }
 
+// ---------------------------------------------------------------------------
+// Multi-server: aggregate models from all configured local servers
+// ---------------------------------------------------------------------------
+
+export async function getAllLocalModels(config) {
+  const servers = [config.ollamaUrl, ...(config.localServers || [])];
+  const allModels = [];
+  const runningModels = new Set();
+  const modelServerMap = {};
+  const serverBackendMap = {};
+  const seen = new Set();
+
+  for (const serverUrl of servers) {
+    const base = serverUrl.replace(/\/$/, "");
+    let bt;
+    try {
+      bt = await detectBackend(base);
+    } catch {
+      continue;
+    }
+    if (bt === "unknown") continue;
+    serverBackendMap[base] = bt;
+
+    let models = [];
+    try {
+      if (bt === "openai-compatible") {
+        models = await getOpenAICompatModels(base);
+      } else {
+        models = await getOllamaModels(base);
+      }
+    } catch {
+      continue;
+    }
+
+    for (const m of models) {
+      if (!seen.has(m)) {
+        seen.add(m);
+        allModels.push(m);
+        modelServerMap[m] = base;
+      }
+    }
+
+    // Fetch running models (Ollama-type only)
+    if (bt === "ollama") {
+      try {
+        const running = await getRunningOllamaModels(base);
+        for (const m of running) runningModels.add(m);
+      } catch { /* ignore */ }
+    }
+  }
+
+  return { allModels, runningModels, modelServerMap, serverBackendMap };
+}
+
 export async function callOllama(messages, model, url, temperature = 0.7, signal = null) {
-  validateOllamaUrl(url);
+  validateServerUrl(url);
   const base = url.replace(/\/$/, "");
   const res = await fetchWithTimeout(
     `${base}/api/chat`,
@@ -184,10 +238,11 @@ export async function sendMessage(messages, config, systemPrompt, signal = null)
   const temperature = config.temperature ?? 0.7;
 
   if (provider === "ollama") {
+    const serverUrl = (config.modelServerMap && config.modelServerMap[model]) || config.ollamaUrl;
     const msgs = systemPrompt
       ? [{ role: "system", content: systemPrompt }, ...messages]
       : messages;
-    return await callOllama(msgs, model, config.ollamaUrl, temperature, signal);
+    return await callOllama(msgs, model, serverUrl, temperature, signal);
   }
 
   if (provider === "anthropic") {
@@ -303,7 +358,7 @@ async function* streamLines(nodeStream) {
 // ---------------------------------------------------------------------------
 
 async function streamOllama(messages, model, url, temperature, onToken, signal) {
-  validateOllamaUrl(url);
+  validateServerUrl(url);
   const base = url.replace(/\/$/, "");
   const res = await streamRequest(
     `${base}/api/chat`,
@@ -345,7 +400,7 @@ async function streamOllama(messages, model, url, temperature, onToken, signal) 
 }
 
 async function streamOpenAICompat(messages, model, url, temperature, onToken, signal) {
-  validateOllamaUrl(url);
+  validateServerUrl(url);
   const base = url.replace(/\/$/, "");
   const res = await streamRequest(
     `${base}/v1/chat/completions`,
@@ -516,14 +571,19 @@ export async function streamMessage(messages, config, systemPrompt, onToken, sig
   }
 
   if (provider === "ollama") {
+    const serverUrl = (config.modelServerMap && config.modelServerMap[model]) || config.ollamaUrl;
+    // Use per-server backend type if available
+    if (config.serverBackendMap && config.serverBackendMap[serverUrl]) {
+      bt = config.serverBackendMap[serverUrl];
+    }
     const msgs = systemPrompt
       ? [{ role: "system", content: systemPrompt }, ...messages]
       : messages;
     if (bt === "openai-compatible") {
-      const usage = await streamOpenAICompat(msgs, model, config.ollamaUrl, temperature, onToken, signal);
+      const usage = await streamOpenAICompat(msgs, model, serverUrl, temperature, onToken, signal);
       return { provider: "openai-compatible", usage };
     }
-    const usage = await streamOllama(msgs, model, config.ollamaUrl, temperature, onToken, signal);
+    const usage = await streamOllama(msgs, model, serverUrl, temperature, onToken, signal);
     return { provider: "ollama", usage };
   }
 

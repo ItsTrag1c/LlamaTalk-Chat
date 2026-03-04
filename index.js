@@ -6,11 +6,11 @@ import { createInterface } from "readline";
 import { loadConfig, saveConfig, isFirstRun, pinRequired, verifyPin, needsPinMigration, hashPin, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveConfigWithKey } from "./src/config.js";
 import { runOnboarding } from "./src/onboarding.js";
 import { runChat } from "./src/chat.js";
-import { sendMessage, detectBackend, getOllamaModels, getOpenAICompatModels, getRunningOllamaModels } from "./src/api.js";
+import { sendMessage, detectBackend, getOllamaModels, getOpenAICompatModels, getRunningOllamaModels, getAllLocalModels } from "./src/api.js";
 import { runInstall, runUninstall, ensureLlamaCmd } from "./src/install.js";
 import { fetchLatestRelease } from "./src/updater.js";
 
-const VERSION = "0.8.1";
+const VERSION = "0.9.0";
 
 const RED = "\x1b[31m";
 const ORANGE = "\x1b[38;5;208m";
@@ -308,27 +308,22 @@ async function main() {
     config.backendType = detectedBackend;
   }
 
-  // Auto-detect model on startup: prefer whatever is currently running/loaded
+  // Auto-detect model on startup: aggregate from all configured servers
   const userExplicitModel = !!args.model;
   if (!userExplicitModel) {
     let autoDetected = null;
     try {
-      if (detectedBackend === "openai-compatible") {
-        // OpenAI-compatible backends (llama.cpp, LM Studio, etc.)
-        const models = await getOpenAICompatModels(config.ollamaUrl);
-        const visible = models.filter((m) => !(config.hiddenModels || []).includes(m));
-        if (visible.length > 0) autoDetected = visible[0];
-      } else {
-        // Ollama — check running models first, fall back to available
-        const running = await getRunningOllamaModels(config.ollamaUrl);
-        const visibleRunning = running.filter((m) => !(config.hiddenModels || []).includes(m));
-        if (visibleRunning.length > 0) {
-          autoDetected = visibleRunning[0];
-        } else {
-          const models = await getOllamaModels(config.ollamaUrl);
-          const visible = models.filter((m) => !(config.hiddenModels || []).includes(m));
-          if (visible.length > 0) autoDetected = visible[0];
-        }
+      const result = await getAllLocalModels(config);
+      config.modelServerMap = result.modelServerMap;
+      config.serverBackendMap = result.serverBackendMap;
+
+      // Prefer a running model, then first visible
+      const visible = result.allModels.filter((m) => !(config.hiddenModels || []).includes(m));
+      const visibleRunning = visible.filter((m) => result.runningModels.has(m));
+      if (visibleRunning.length > 0) {
+        autoDetected = visibleRunning[0];
+      } else if (visible.length > 0) {
+        autoDetected = visible[0];
       }
     } catch { /* server not running — keep saved selection */ }
 
