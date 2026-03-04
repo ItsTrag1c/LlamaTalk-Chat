@@ -229,8 +229,9 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
     let streamTokenCount = 0;
     const streamStartMs = Date.now();
 
+    let result;
     try {
-      const result = await streamMessage(messages, config, systemPrompt, (token) => {
+      result = await streamMessage(messages, config, systemPrompt, (token) => {
         streamTokenCount++;
         if (firstToken) {
           firstToken = false;

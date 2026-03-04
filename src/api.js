@@ -352,7 +352,7 @@ async function streamOpenAICompat(messages, model, url, temperature, onToken, si
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages, stream: true, temperature }),
+      body: JSON.stringify({ model, messages, stream: true, temperature, stream_options: { include_usage: true } }),
     },
     signal
   );
