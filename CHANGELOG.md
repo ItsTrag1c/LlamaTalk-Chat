@@ -5,6 +5,13 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.12.1 — 2026-03-04
+
+### Bug Fixes
+- **Fixed inaccurate token counts for OpenAI-compatible backends** — When using llama.cpp, LM Studio, vLLM, or other OpenAI-compatible servers, the token counter was falling back to event-counted tokens instead of actual API-reported counts. The streaming request now includes `stream_options: { include_usage: true }`, so backends that support it return real usage data in the final chunk.
+
+---
+
 ## v0.12.0 — 2026-03-04
 
 ### New Features
@@ -496,7 +503,7 @@ Last updated: 2026-03-04
 
 *This document is updated with each new version of LlamaTalk Desktop.*
 
-*Last updated: 2026-03-04 (v0.12.0)*
+*Last updated: 2026-03-04 (v0.12.1)*
 
 ---
 
