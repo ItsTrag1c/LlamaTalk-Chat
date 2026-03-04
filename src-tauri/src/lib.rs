@@ -197,9 +197,19 @@ fn get_documents_dir(app: tauri::AppHandle) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
+/// Destroy all WebView windows so the browser process flushes localStorage
+/// to disk, then wait briefly before the caller terminates the process.
+fn flush_and_exit(app: &tauri::AppHandle) {
+    for (_, window) in app.webview_windows() {
+        let _ = window.destroy();
+    }
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    std::process::exit(0);
+}
+
 #[tauri::command]
 fn exit_app(app: tauri::AppHandle) {
-    app.exit(0);
+    flush_and_exit(&app);
 }
 
 #[tauri::command]
@@ -364,7 +374,7 @@ async fn download_and_install(app: tauri::AppHandle, url: String, version: Strin
         .args(["/c", "start", "", dest.to_str().unwrap_or_default()])
         .spawn()
         .map_err(|e| e.to_string())?;
-    app.exit(0);
+    flush_and_exit(&app);
     Ok(())
 }
 
@@ -374,7 +384,7 @@ fn launch_installer(app: tauri::AppHandle, path: String) -> Result<(), String> {
         .args(["/c", "start", "", &path])
         .spawn()
         .map_err(|e| e.to_string())?;
-    app.exit(0);
+    flush_and_exit(&app);
     Ok(())
 }
 
@@ -416,7 +426,13 @@ pub fn run() {
                     .menu(&menu)
                     .on_menu_event(|app, event| {
                         match event.id.as_ref() {
-                            "quit" => { app.exit(0); }
+                            "quit" => {
+                                for (_, w) in app.webview_windows() {
+                                    let _ = w.destroy();
+                                }
+                                std::thread::sleep(std::time::Duration::from_millis(300));
+                                std::process::exit(0);
+                            }
                             "toggle-assistant" => {
                                 if let Some(w) = app.get_webview_window("llama-assistant") {
                                     let visible = w.is_visible().unwrap_or(false);
