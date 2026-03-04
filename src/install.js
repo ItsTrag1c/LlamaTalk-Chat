@@ -110,7 +110,7 @@ function removeFromPath(installDir) {
 // Returns the install directory written by the NSIS installer, or null if not installed.
 function getNsisInstalledDir() {
   try {
-    const result = execSync('reg query "HKLM\\Software\\LlamaTalk CLI" /ve', { encoding: "utf8" });
+    const result = execSync('reg query "HKLM\\Software\\LlamaTalk CLI" /ve', { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
     const match = result.match(/REG_SZ\s+(.+)/);
     return match ? match[1].trim() : null;
   } catch {
