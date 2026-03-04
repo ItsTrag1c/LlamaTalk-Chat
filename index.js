@@ -6,11 +6,11 @@ import { createInterface } from "readline";
 import { loadConfig, saveConfig, isFirstRun, pinRequired, verifyPin, needsPinMigration, hashPin, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveConfigWithKey } from "./src/config.js";
 import { runOnboarding } from "./src/onboarding.js";
 import { runChat } from "./src/chat.js";
-import { sendMessage, detectBackend, getOllamaModels, getOpenAICompatModels } from "./src/api.js";
+import { sendMessage, detectBackend, getOllamaModels, getOpenAICompatModels, getRunningOllamaModels } from "./src/api.js";
 import { runInstall, runUninstall, ensureLlamaCmd } from "./src/install.js";
 import { fetchLatestRelease } from "./src/updater.js";
 
-const VERSION = "0.7.4";
+const VERSION = "0.7.5";
 
 const RED = "\x1b[31m";
 const ORANGE = "\x1b[38;5;208m";
@@ -308,17 +308,34 @@ async function main() {
     config.backendType = detectedBackend;
   }
 
-  // Auto-detect model on startup if none is saved
-  if (!config.selectedModel) {
+  // Auto-detect model on startup: prefer whatever is currently running/loaded
+  const userExplicitModel = !!args.model;
+  if (!userExplicitModel) {
+    let autoDetected = null;
     try {
-      const fetcher = detectedBackend === "openai" ? getOpenAICompatModels : getOllamaModels;
-      const models = await fetcher(config.ollamaUrl);
-      const visible = models.filter((m) => !(config.hiddenModels || []).includes(m));
-      if (visible.length > 0) {
-        config.selectedModel = visible[0];
-        saveConfig(config);
+      if (detectedBackend === "openai-compatible") {
+        // OpenAI-compatible backends (llama.cpp, LM Studio, etc.)
+        const models = await getOpenAICompatModels(config.ollamaUrl);
+        const visible = models.filter((m) => !(config.hiddenModels || []).includes(m));
+        if (visible.length > 0) autoDetected = visible[0];
+      } else {
+        // Ollama — check running models first, fall back to available
+        const running = await getRunningOllamaModels(config.ollamaUrl);
+        const visibleRunning = running.filter((m) => !(config.hiddenModels || []).includes(m));
+        if (visibleRunning.length > 0) {
+          autoDetected = visibleRunning[0];
+        } else {
+          const models = await getOllamaModels(config.ollamaUrl);
+          const visible = models.filter((m) => !(config.hiddenModels || []).includes(m));
+          if (visible.length > 0) autoDetected = visible[0];
+        }
       }
-    } catch { /* Ollama not running — user will see "no model" prompt */ }
+    } catch { /* server not running — keep saved selection */ }
+
+    if (autoDetected && autoDetected !== config.selectedModel) {
+      config.selectedModel = autoDetected;
+      saveConfig(config);
+    }
   }
 
   let result = await runChat(rl, config, encKey, {

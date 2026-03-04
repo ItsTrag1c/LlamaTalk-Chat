@@ -123,6 +123,26 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
     prePromptLines++;
 
     const prompt = buildPrompt(config);
+
+    // Listen for terminal resize — redraw banner + hint when it fires
+    let resizeHandler = null;
+    if (process.stdout.isTTY) {
+      resizeHandler = () => {
+        process.stdout.write("\x1b[2J\x1b[H"); // clear screen
+        printBanner(version);
+        if (messages.length > 0) {
+          const tok = (s) => Math.ceil((s || "").length / 4);
+          let total = 0;
+          for (const m of messages) total += tok(m.content) + 4;
+          process.stdout.write(`  \x1b[38;5;220m●\x1b[0m  \x1b[2m${total.toLocaleString()} tokens\x1b[0m   \n`);
+        }
+        printShortcutHint();
+        rl.setPrompt(prompt);
+        rl.prompt(true); // redraw prompt
+      };
+      process.stdout.on("resize", resizeHandler);
+    }
+
     let line;
     try {
       const timeoutMs = (config.inactivityTimeout ?? 30) * 60 * 1000;
@@ -137,6 +157,7 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
           line = await Promise.race([userInput, timeout]);
           clearTimeout(timer);
         } catch (e) {
+          if (resizeHandler) process.stdout.removeListener("resize", resizeHandler);
           if (e.message === "__INACTIVITY__") {
             if (!noHistory) saveHistory(messages, encKey);
             rl.close();
@@ -148,9 +169,12 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
         line = await userInput;
       }
     } catch {
+      if (resizeHandler) process.stdout.removeListener("resize", resizeHandler);
       // readline closed
       break;
     }
+
+    if (resizeHandler) process.stdout.removeListener("resize", resizeHandler);
 
     if (line === null || line === undefined) break;
 

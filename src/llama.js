@@ -64,28 +64,39 @@ function printLlamaLines(lines) {
   }
 }
 
-export function printBanner(version = "") {
-  const ART = [
-    "    __    __                     ______      ____   ________    ____",
-    "   / /   / /___ _____ ___  ____ /_  __/___ _/ / /__/ ____/ /   /  _/",
-    "  / /   / / __ `/ __ `__ \\/ __ `// / / __ `/ / //_/ /   / /    / /  ",
-    " / /___/ / /_/ / / / / / / /_/ // / / /_/ / / ,< / /___/ /____/ /   ",
-    "/_____/_/\\__,_/_/ /_/ /_/\\__,_//_/  \\__,_/_/_/|_|\\____/_____/___/   ",
-  ];
+const ART_LARGE = [
+  "    __    __                     ______      ____   ________    ____",
+  "   / /   / /___ _____ ___  ____ /_  __/___ _/ / /__/ ____/ /   /  _/",
+  "  / /   / / __ `/ __ `__ \\/ __ `// / / __ `/ / //_/ /   / /    / /  ",
+  " / /___/ / /_/ / / / / / / /_/ // / / /_/ / / ,< / /___/ /____/ /   ",
+  "/_____/_/\\__,_/_/ /_/ /_/\\__,_//_/  \\__,_/_/_/|_|\\____/_____/___/   ",
+];
 
+const ART_SMALL = [
+  " _    _                 _____     _ _    ___ _ ___",
+  "| |  | |               |_   _|   | | |  / __| |_ _|",
+  "| |  | | __ _ _ __ ___   | | __ _| | |_| |  | || |",
+  "| |__| |/ _` | '_ ` _ \\  | |/ _` | | / | |__| || |",
+  "|____|_|\\__,_|_| |_| |_| |_|\\__,_|_|_\\_\\____|_|___|",
+];
+
+export function printBanner(version = "") {
   const termWidth = process.stdout.columns || 80;
+  const ART = termWidth >= 70 ? ART_LARGE : ART_SMALL;
   const artWidth = Math.max(...ART.map((l) => l.length));
   const padCount = Math.max(0, Math.floor((termWidth - artWidth) / 2));
   const pad = " ".repeat(padCount);
 
   const verStr = version ? `  ${DIM}v${version}${RESET}` : "";
+  const tagline = "Chat from the terminal";
+  const tagPad = " ".repeat(Math.max(0, Math.floor((termWidth - tagline.length - (version ? version.length + 4 : 0)) / 2)));
 
   process.stdout.write("\n");
   for (const line of ART) {
     process.stdout.write(ORANGE + pad + line + RESET + "\n");
   }
   process.stdout.write(
-    "\n" + pad + DIM + "Chat from the terminal" + RESET + verStr + "\n\n"
+    "\n" + tagPad + DIM + tagline + RESET + verStr + "\n\n"
   );
 }
 

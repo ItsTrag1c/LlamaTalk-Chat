@@ -60,6 +60,15 @@ export async function getOllamaModels(url) {
   return (data.models || []).map((m) => m.name);
 }
 
+export async function getRunningOllamaModels(url) {
+  validateOllamaUrl(url);
+  const base = url.replace(/\/$/, "");
+  const res = await fetchWithTimeout(`${base}/api/ps`, {}, 5_000);
+  if (!res.ok) throw new Error(`Ollama returned ${res.status}`);
+  const data = await res.json();
+  return (data.models || []).map((m) => m.name);
+}
+
 export async function callOllama(messages, model, url, temperature = 0.7, signal = null) {
   validateOllamaUrl(url);
   const base = url.replace(/\/$/, "");
