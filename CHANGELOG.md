@@ -1,6 +1,17 @@
 # LlamaTalk Desktop — Changelog
 
 A running history of all features, fixes, and improvements made to LlamaTalk Desktop.
+Last updated: 2026-03-04
+
+---
+
+## v0.11.0 — 2026-03-04
+
+### New Features
+- **True streaming responses** — Messages now appear token-by-token in real time instead of loading the full response first. Works with all providers: Ollama, Anthropic, Google, and OpenAI. The word delay setting now acts as a throttle on top of the stream (0 = instant display, >0 = buffered drain at interval).
+- **llama.cpp / OpenAI-compatible server support** — LlamaTalk Desktop now auto-detects whether your local server is Ollama or an OpenAI-compatible API (llama.cpp, vLLM, etc.). Model discovery and chat automatically use the correct endpoints — no manual configuration needed.
+- **Backend type shown on connection** — When you test your server URL in Settings, the detected backend type (Ollama or OpenAI-compatible) is identified and saved.
+- **Stream cancellation** — The Stop button now immediately cancels the active stream on the server side rather than just hiding the response. Partial responses are preserved in the conversation.
 
 ---
 
