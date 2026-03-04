@@ -6,7 +6,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { openPath } from "@tauri-apps/plugin-opener";
 
-const APP_VERSION = "0.12.0";
+const APP_VERSION = "0.12.1";
 const DEFAULT_URL = "http://localhost:11434";
 
 const CLOUD_MODELS = {
@@ -1583,7 +1583,7 @@ export default function App() {
           providerType = "openai-compatible";
           streamUrl = `${baseUrl}/v1/chat/completions`;
           streamHeaders = JSON.stringify([["content-type", "application/json"]]);
-          streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, stream: true, temperature });
+          streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, stream: true, temperature, stream_options: { include_usage: true } });
         } else {
           providerType = "ollama";
           streamUrl = `${baseUrl}/api/chat`;
