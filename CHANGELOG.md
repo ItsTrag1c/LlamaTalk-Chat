@@ -1,5 +1,18 @@
 # Changelog — LlamaTalkCLI
 
+Last updated: 2026-03-04
+
+---
+
+## v0.7.0 — 2026-03-04
+
+### New Features
+- **True streaming responses** — Responses now appear token-by-token in real time as the model generates them. No more waiting for the entire response to load before seeing output. Works with all providers: Ollama, Anthropic, Google, and OpenAI.
+- **llama.cpp / OpenAI-compatible server support** — LlamaTalkCLI now auto-detects whether your server is Ollama or an OpenAI-compatible API (llama.cpp, vLLM, etc.). The `/models` command and chat automatically use the correct endpoints.
+- **Automatic backend detection on startup** — The server type is detected in the background when the app launches. Changing your server URL via `/set ollama-url` also re-detects the backend type.
+- **Streaming cancellation preserves partial responses** — Pressing Esc mid-stream now keeps the tokens already received in the conversation history instead of discarding the entire response.
+- **Word delay as stream throttle** — The word delay setting now throttles the display of streamed tokens (0 = instant, >0 = buffered at interval) instead of faking streaming after the full response loads.
+
 ---
 
 ## v0.6.0 — 2026-03-03
