@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { openPath } from "@tauri-apps/plugin-opener";
 
-const APP_VERSION = "0.10.0";
+const APP_VERSION = "0.11.0";
 const DEFAULT_URL = "http://localhost:11434";
 
 const CLOUD_MODELS = {
@@ -431,6 +432,7 @@ export default function App() {
   const [updateAvailable, setUpdateAvailable] = useState(null); // null | { version, url, checksumUrl }
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
+  const [backendType, setBackendType] = useState(() => localStorage.getItem("backendType") || "ollama");
 
   // Profile / PIN — initial values overridden by credential store startup effect
   const [isLocked, setIsLocked] = useState(false);
@@ -501,6 +503,7 @@ export default function App() {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const abortRef = useRef(null);
+  const streamIdRef = useRef(null);
   const closeMinimiesToTrayRef = useRef(closeMinimiesToTray);
   const profileDropdownRef = useRef(null);
 
@@ -892,13 +895,15 @@ export default function App() {
     setUrlCheckStatus("checking");
     const url = normalizeUrl(draftOllamaUrl);
     try {
-      await invoke("ollama_get", { url: `${url}/api/tags` });
+      const detected = await invoke("detect_backend", { url });
+      setBackendType(detected);
+      localStorage.setItem("backendType", detected);
       setUrlCheckStatus("ok");
       // Commit the URL immediately — populate models without needing Save Settings
       setOllamaUrl(url);
       setDraftOllamaUrl(url);
       localStorage.setItem("ollamaUrl", url);
-      fetchModels(url);
+      fetchModels(url, detected);
     } catch {
       setUrlCheckStatus("error");
     }
@@ -950,13 +955,21 @@ export default function App() {
     }
   }
 
-  async function fetchModels(url) {
+  async function fetchModels(url, detectedBackend) {
     const target = normalizeUrl(url ?? ollamaUrl);
+    const bt = detectedBackend || backendType;
     setOllamaStatus("checking");
     try {
-      const text = await invoke("ollama_get", { url: `${target}/api/tags` });
-      const data = JSON.parse(text);
-      const list = (data.models || []).map((m) => m.name);
+      let list;
+      if (bt === "openai-compatible") {
+        const text = await invoke("ollama_get", { url: `${target}/v1/models` });
+        const data = JSON.parse(text);
+        list = (data.data || []).map((m) => m.id);
+      } else {
+        const text = await invoke("ollama_get", { url: `${target}/api/tags` });
+        const data = JSON.parse(text);
+        list = (data.models || []).map((m) => m.name);
+      }
       setModels(list);
       setSelectedModel((prev) => {
         // Keep current selection if it's still available on the server
@@ -1082,6 +1095,9 @@ export default function App() {
 
   function stopStreaming() {
     abortRef.current?.abort();
+    if (streamIdRef.current) {
+      invoke("cancel_stream", { streamId: streamIdRef.current }).catch(() => {});
+    }
     setIsStreaming(false);
   }
 
@@ -1522,59 +1538,135 @@ export default function App() {
     try {
       abortRef.current = new AbortController();
       const provider = getProvider(selectedModel);
-      let content = "";
-      try {
-        if (provider === "ollama") {
-          const responseText = await invoke("ollama_post", {
-            url: `${normalizeUrl(ollamaUrl)}/api/chat`,
-            body: JSON.stringify({ model: selectedModel, messages: apiMessages, stream: false, options: { temperature } }),
-          });
-          if (abortRef.current.signal.aborted) return;
-          const data = JSON.parse(responseText);
-          content = data.message?.content || "";
-        } else if (provider === "anthropic") {
-          content = await callAnthropicApi(apiMessages, selectedModel, systemPrompt, apiKeys.anthropic);
-        } else if (provider === "google") {
-          content = await callGeminiApi(apiMessages, selectedModel, systemPrompt, apiKeys.google);
-        } else if (provider === "openai") {
-          content = await callOpenAiApi(apiMessages, selectedModel, apiKeys.openai);
+      const streamId = genId();
+      streamIdRef.current = streamId;
+
+      // Build streaming request params based on provider
+      let streamUrl, streamHeaders, streamBody, providerType;
+      const baseUrl = normalizeUrl(ollamaUrl);
+
+      if (provider === "ollama") {
+        if (backendType === "openai-compatible") {
+          providerType = "openai-compatible";
+          streamUrl = `${baseUrl}/v1/chat/completions`;
+          streamHeaders = JSON.stringify([["content-type", "application/json"]]);
+          streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, stream: true, temperature });
+        } else {
+          providerType = "ollama";
+          streamUrl = `${baseUrl}/api/chat`;
+          streamHeaders = JSON.stringify([["content-type", "application/json"]]);
+          streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, stream: true, options: { temperature } });
         }
-      } catch (err) {
-        if (abortRef.current.signal.aborted) return;
-        // Try to parse provider error body for a meaningful error message
-        let errMsg = "";
-        try {
-          const parsed = JSON.parse(err);
-          errMsg = parsed?.error?.message || parsed?.message || String(err);
-        } catch { errMsg = typeof err === "string" ? err : (err?.message || String(err)); }
-        throw new Error(errMsg);
+      } else if (provider === "anthropic") {
+        providerType = "anthropic";
+        streamUrl = "https://api.anthropic.com/v1/messages";
+        const msgs = apiMessages.filter((m) => m.role !== "system");
+        streamHeaders = JSON.stringify([
+          ["x-api-key", apiKeys.anthropic],
+          ["anthropic-version", "2023-06-01"],
+          ["content-type", "application/json"],
+        ]);
+        streamBody = JSON.stringify({
+          model: selectedModel, max_tokens: 8096, messages: msgs, temperature, stream: true,
+          ...(systemPrompt.trim() ? { system: systemPrompt.trim() } : {}),
+        });
+      } else if (provider === "google") {
+        providerType = "google";
+        streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKeys.google}`;
+        const contents = apiMessages.filter((m) => m.role !== "system")
+          .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
+        streamHeaders = JSON.stringify([["content-type", "application/json"]]);
+        streamBody = JSON.stringify({
+          contents, generationConfig: { temperature },
+          ...(systemPrompt.trim() ? { systemInstruction: { parts: [{ text: systemPrompt.trim() }] } } : {}),
+        });
+      } else if (provider === "openai") {
+        providerType = "openai";
+        streamUrl = "https://api.openai.com/v1/chat/completions";
+        streamHeaders = JSON.stringify([
+          ["Authorization", `Bearer ${apiKeys.openai}`],
+          ["content-type", "application/json"],
+        ]);
+        streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, temperature, stream: true });
       }
 
-      if (abortRef.current.signal.aborted) return;
+      // Token buffer for wordDelay throttling
+      let fullContent = "";
+      let tokenQueue = [];
+      let drainTimer = null;
 
-      const words = content.split(" ");
-      let displayed = "";
-      for (let i = 0; i < words.length; i++) {
-        if (abortRef.current.signal.aborted) break;
-        if (i > 0) displayed += " ";
-        displayed += words[i];
-        const snap = displayed;
+      const updateContent = (newContent) => {
         setConversations((prev) =>
           prev.map((c) =>
             c.id === convId
-              ? {
-                  ...c,
-                  messages: c.messages.map((m) =>
-                    m.id === asstId ? { ...m, content: snap } : m
-                  ),
-                }
+              ? { ...c, messages: c.messages.map((m) => m.id === asstId ? { ...m, content: newContent } : m) }
               : c
           )
         );
-        await new Promise((r) => setTimeout(r, wordDelay));
+      };
+
+      // Listen for streaming events
+      const unlistenToken = await listen("chat-token", (event) => {
+        if (event.payload.id !== streamId) return;
+        const token = event.payload.token;
+        if (wordDelay > 0) {
+          tokenQueue.push(token);
+          if (!drainTimer) {
+            drainTimer = setInterval(() => {
+              if (tokenQueue.length > 0) {
+                fullContent += tokenQueue.shift();
+                updateContent(fullContent);
+              } else {
+                clearInterval(drainTimer);
+                drainTimer = null;
+              }
+            }, wordDelay);
+          }
+        } else {
+          fullContent += token;
+          updateContent(fullContent);
+        }
+      });
+
+      const streamDone = new Promise((resolve, reject) => {
+        let unDone, unErr;
+        const cleanup = () => { unDone?.then?.(u => u()); unErr?.then?.(u => u()); };
+        unDone = listen("chat-done", (event) => {
+          if (event.payload.id !== streamId) return;
+          cleanup();
+          resolve();
+        });
+        unErr = listen("chat-error", (event) => {
+          if (event.payload.id !== streamId) return;
+          cleanup();
+          reject(new Error(event.payload.error));
+        });
+      });
+
+      // Fire the streaming request (runs in background on Rust side)
+      invoke("stream_chat", {
+        url: streamUrl, headers: streamHeaders, body: streamBody,
+        providerType, streamId,
+      }).catch(() => {}); // errors come through chat-error event
+
+      // Wait for stream to finish
+      try {
+        await streamDone;
+      } catch (err) {
+        if (!abortRef.current.signal.aborted) throw err;
       }
 
-      if (!abortRef.current.signal.aborted && content) {
+      // Flush any remaining buffered tokens
+      if (drainTimer) clearInterval(drainTimer);
+      while (tokenQueue.length > 0) {
+        fullContent += tokenQueue.shift();
+      }
+      updateContent(fullContent);
+
+      unlistenToken();
+      streamIdRef.current = null;
+
+      if (fullContent) {
         try {
           let granted = await isPermissionGranted();
           if (!granted) {
@@ -1593,7 +1685,13 @@ export default function App() {
       }
     } catch (err) {
       const errMsg = typeof err === "string" ? err : (err?.message || String(err));
-      const errText = `Error: ${errMsg}`;
+      // Try to parse provider error body for a meaningful error message
+      let displayErr = errMsg;
+      try {
+        const parsed = JSON.parse(errMsg);
+        displayErr = parsed?.error?.message || parsed?.message || errMsg;
+      } catch { /* not JSON */ }
+      const errText = `Error: ${displayErr}`;
       setConversations((prev) =>
         prev.map((c) =>
           c.id === convId

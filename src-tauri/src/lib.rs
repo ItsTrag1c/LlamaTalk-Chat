@@ -1,9 +1,12 @@
 use base64::{engine::general_purpose, Engine as _};
+use futures_util::StreamExt;
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager,
+    Emitter, Manager,
 };
 
 struct AssistantMenuState {
@@ -388,6 +391,241 @@ fn launch_installer(app: tauri::AppHandle, path: String) -> Result<(), String> {
     Ok(())
 }
 
+struct StreamCancellationState {
+    flags: Mutex<HashMap<String, Arc<AtomicBool>>>,
+}
+
+#[tauri::command]
+async fn detect_backend(url: String) -> Result<String, String> {
+    validate_ollama_url(&url)?;
+    let base = url.trim_end_matches('/');
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    // Try Ollama endpoint first
+    if let Ok(res) = client.get(format!("{}/api/tags", base)).send().await {
+        if res.status().is_success() {
+            return Ok("ollama".to_string());
+        }
+    }
+
+    // Try OpenAI-compatible endpoint
+    if let Ok(res) = client.get(format!("{}/v1/models", base)).send().await {
+        if res.status().is_success() {
+            return Ok("openai-compatible".to_string());
+        }
+    }
+
+    Err("Could not detect backend type. Neither Ollama nor OpenAI-compatible API responded.".to_string())
+}
+
+#[derive(Clone, serde::Serialize)]
+struct ChatTokenPayload {
+    id: String,
+    token: String,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct ChatDonePayload {
+    id: String,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct ChatErrorPayload {
+    id: String,
+    error: String,
+}
+
+#[tauri::command]
+async fn stream_chat(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, StreamCancellationState>,
+    url: String,
+    headers: String,
+    body: String,
+    provider_type: String,
+    stream_id: String,
+) -> Result<(), String> {
+    // Validate URL for local providers
+    if provider_type == "ollama" || provider_type == "openai-compatible" {
+        validate_ollama_url(&url)?;
+    }
+
+    let cancel_flag = Arc::new(AtomicBool::new(false));
+    {
+        let mut flags = state.flags.lock().unwrap();
+        flags.insert(stream_id.clone(), cancel_flag.clone());
+    }
+
+    let result = stream_chat_inner(&window, &url, &headers, &body, &provider_type, &stream_id, &cancel_flag).await;
+
+    // Cleanup cancellation flag
+    {
+        let mut flags = state.flags.lock().unwrap();
+        flags.remove(&stream_id);
+    }
+
+    match result {
+        Ok(()) => {
+            let _ = window.emit("chat-done", ChatDonePayload { id: stream_id });
+            Ok(())
+        }
+        Err(e) => {
+            if cancel_flag.load(Ordering::Relaxed) {
+                let _ = window.emit("chat-done", ChatDonePayload { id: stream_id });
+                Ok(())
+            } else {
+                let _ = window.emit("chat-error", ChatErrorPayload { id: stream_id.clone(), error: e.clone() });
+                Err(e)
+            }
+        }
+    }
+}
+
+async fn stream_chat_inner(
+    window: &tauri::WebviewWindow,
+    url: &str,
+    headers: &str,
+    body: &str,
+    provider_type: &str,
+    stream_id: &str,
+    cancel_flag: &Arc<AtomicBool>,
+) -> Result<(), String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(300))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let pairs: Vec<(String, String)> = serde_json::from_str(headers)
+        .unwrap_or_default();
+    let mut req = client.post(url).body(body.to_string());
+    for (k, v) in pairs {
+        req = req.header(k, v);
+    }
+
+    let res = req.send().await.map_err(|e| e.to_string())?;
+    if !res.status().is_success() {
+        let status = res.status();
+        let text = res.text().await.unwrap_or_default();
+        return Err(format!("HTTP {} — {}", status, text));
+    }
+
+    let mut stream = res.bytes_stream();
+    let mut line_buf = String::new();
+
+    while let Some(chunk) = stream.next().await {
+        if cancel_flag.load(Ordering::Relaxed) {
+            return Err("cancelled".to_string());
+        }
+        let chunk = chunk.map_err(|e| e.to_string())?;
+        let text = String::from_utf8_lossy(&chunk);
+        line_buf.push_str(&text);
+
+        // Process complete lines
+        while let Some(pos) = line_buf.find('\n') {
+            let line = line_buf[..pos].trim().to_string();
+            line_buf = line_buf[pos + 1..].to_string();
+
+            if line.is_empty() {
+                continue;
+            }
+
+            if let Some(token) = extract_token(&line, provider_type) {
+                if !token.is_empty() {
+                    let _ = window.emit("chat-token", ChatTokenPayload {
+                        id: stream_id.to_string(),
+                        token,
+                    });
+                }
+            }
+
+            // Check for stream end
+            if is_stream_done(&line, provider_type) {
+                return Ok(());
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn extract_token(line: &str, provider_type: &str) -> Option<String> {
+    match provider_type {
+        "ollama" => {
+            // NDJSON: each line is a JSON object
+            let v: serde_json::Value = serde_json::from_str(line).ok()?;
+            v["message"]["content"].as_str().map(|s| s.to_string())
+        }
+        "openai-compatible" | "openai" => {
+            // SSE: lines start with "data: "
+            let data = line.strip_prefix("data: ")?;
+            if data == "[DONE]" {
+                return None;
+            }
+            let v: serde_json::Value = serde_json::from_str(data).ok()?;
+            v["choices"][0]["delta"]["content"].as_str().map(|s| s.to_string())
+        }
+        "anthropic" => {
+            // SSE format — look for data lines with content_block_delta
+            let data = line.strip_prefix("data: ")?;
+            let v: serde_json::Value = serde_json::from_str(data).ok()?;
+            if v["type"].as_str() == Some("content_block_delta") {
+                v["delta"]["text"].as_str().map(|s| s.to_string())
+            } else {
+                None
+            }
+        }
+        "google" => {
+            // SSE: data lines with candidates
+            let data = line.strip_prefix("data: ")?;
+            let v: serde_json::Value = serde_json::from_str(data).ok()?;
+            v["candidates"][0]["content"]["parts"][0]["text"].as_str().map(|s| s.to_string())
+        }
+        _ => None,
+    }
+}
+
+fn is_stream_done(line: &str, provider_type: &str) -> bool {
+    match provider_type {
+        "ollama" => {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(line) {
+                v["done"].as_bool() == Some(true)
+            } else {
+                false
+            }
+        }
+        "openai-compatible" | "openai" => {
+            line.strip_prefix("data: ").map(|d| d == "[DONE]").unwrap_or(false)
+        }
+        "anthropic" => {
+            if let Some(data) = line.strip_prefix("data: ") {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(data) {
+                    v["type"].as_str() == Some("message_stop")
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }
+        "google" => false, // Google SSE ends when the stream closes
+        _ => false,
+    }
+}
+
+#[tauri::command]
+fn cancel_stream(
+    state: tauri::State<'_, StreamCancellationState>,
+    stream_id: String,
+) {
+    let flags = state.flags.lock().unwrap();
+    if let Some(flag) = flags.get(&stream_id) {
+        flag.store(true, Ordering::Relaxed);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -418,6 +656,10 @@ pub fn run() {
                 // Store reference so set_assistant_checked command can update it
                 app.manage(AssistantMenuState {
                     item: Arc::new(Mutex::new(assistant_item)),
+                });
+
+                app.manage(StreamCancellationState {
+                    flags: Mutex::new(HashMap::new()),
                 });
 
                 TrayIconBuilder::new()
@@ -514,7 +756,10 @@ pub fn run() {
             launch_installer,
             cred_store,
             cred_load,
-            cred_delete
+            cred_delete,
+            detect_backend,
+            stream_chat,
+            cancel_stream
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

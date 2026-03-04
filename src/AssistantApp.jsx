@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./index.css";
 
@@ -96,6 +97,7 @@ export default function AssistantApp() {
   const [sessionStartTime, setSessionStartTime] = useState(null);
 
   const abortRef = useRef(null);
+  const streamIdRef = useRef(null);
   const msgListRef = useRef(null);
 
   // Make window background transparent
@@ -217,6 +219,7 @@ export default function AssistantApp() {
 
     try {
       const wordDelayMs = Number(localStorage.getItem("wordDelay") ?? 20);
+      const bt = localStorage.getItem("backendType") || "ollama";
 
       // Build API messages from all completed exchanges (exclude empty assistant placeholder)
       const history = updatedMessages
@@ -227,43 +230,103 @@ export default function AssistantApp() {
         ...history,
       ];
 
-      const responseText = await invoke("ollama_post", {
-        url: `${ollamaUrl}/api/chat`,
-        body: JSON.stringify({
-          model: selectedModel,
-          messages: apiMessages,
-          stream: false,
-        }),
+      const streamId = genId();
+      streamIdRef.current = streamId;
+
+      let streamUrl, streamHeaders, providerType, streamBody;
+      if (bt === "openai-compatible") {
+        providerType = "openai-compatible";
+        streamUrl = `${ollamaUrl}/v1/chat/completions`;
+        streamHeaders = JSON.stringify([["content-type", "application/json"]]);
+        streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, stream: true });
+      } else {
+        providerType = "ollama";
+        streamUrl = `${ollamaUrl}/api/chat`;
+        streamHeaders = JSON.stringify([["content-type", "application/json"]]);
+        streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, stream: true });
+      }
+
+      let fullContent = "";
+      let tokenQueue = [];
+      let drainTimer = null;
+      let speakingStarted = false;
+
+      const updateContent = (newContent) => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === asstMsgId ? { ...m, content: newContent } : m))
+        );
+      };
+
+      const unlistenToken = await listen("chat-token", (event) => {
+        if (event.payload.id !== streamId) return;
+        if (!speakingStarted) {
+          speakingStarted = true;
+          setLlamaState("speaking");
+        }
+        const token = event.payload.token;
+        if (wordDelayMs > 0) {
+          tokenQueue.push(token);
+          if (!drainTimer) {
+            drainTimer = setInterval(() => {
+              if (tokenQueue.length > 0) {
+                fullContent += tokenQueue.shift();
+                updateContent(fullContent);
+              } else {
+                clearInterval(drainTimer);
+                drainTimer = null;
+              }
+            }, wordDelayMs);
+          }
+        } else {
+          fullContent += token;
+          updateContent(fullContent);
+        }
       });
 
-      if (abortRef.current.signal.aborted) return;
+      const streamDone = new Promise((resolve, reject) => {
+        let unDone, unErr;
+        const cleanup = () => { unDone?.then?.(u => u()); unErr?.then?.(u => u()); };
+        unDone = listen("chat-done", (event) => {
+          if (event.payload.id !== streamId) return;
+          cleanup();
+          resolve();
+        });
+        unErr = listen("chat-error", (event) => {
+          if (event.payload.id !== streamId) return;
+          cleanup();
+          reject(new Error(event.payload.error));
+        });
+      });
 
-      const data = JSON.parse(responseText);
-      const content = data.message?.content || "";
+      invoke("stream_chat", {
+        url: streamUrl, headers: streamHeaders, body: streamBody,
+        providerType, streamId,
+      }).catch(() => {});
 
-      const words = content.split(" ");
-      setLlamaState("speaking");
-      let displayed = "";
-      for (let i = 0; i < words.length; i++) {
-        if (abortRef.current.signal.aborted) break;
-        if (i > 0) displayed += " ";
-        displayed += words[i];
-        const snap = displayed;
-        setMessages((prev) =>
-          prev.map((m) => (m.id === asstMsgId ? { ...m, content: snap } : m))
-        );
-        await new Promise((r) => setTimeout(r, wordDelayMs));
+      try {
+        await streamDone;
+      } catch (err) {
+        if (!abortRef.current.signal.aborted) throw err;
       }
+
+      if (drainTimer) clearInterval(drainTimer);
+      while (tokenQueue.length > 0) {
+        fullContent += tokenQueue.shift();
+      }
+      updateContent(fullContent);
+
+      unlistenToken();
+      streamIdRef.current = null;
 
       // Sync completed conversation to main app
       const finalMsgs = updatedMessages.map((m) =>
-        m.id === asstMsgId ? { ...m, content } : m
+        m.id === asstMsgId ? { ...m, content: fullContent } : m
       );
       syncToMainApp(finalMsgs, convId, startTime);
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === asstMsgId ? { ...m, content: "\u26A0 Could not reach Ollama." } : m
+          m.id === asstMsgId ? { ...m, content: "\u26A0 Could not reach server." } : m
         )
       );
     } finally {
@@ -274,6 +337,9 @@ export default function AssistantApp() {
 
   function stopStreaming() {
     abortRef.current?.abort();
+    if (streamIdRef.current) {
+      invoke("cancel_stream", { streamId: streamIdRef.current }).catch(() => {});
+    }
     setIsStreaming(false);
     setLlamaState("idle");
   }
