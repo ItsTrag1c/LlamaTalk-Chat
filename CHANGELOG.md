@@ -4,6 +4,13 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.7.2 — 2026-03-04
+
+### Bug Fixes
+- **Fixed llama.cpp responses not appearing in chat** — llama.cpp servers that serve both Ollama-compatible and OpenAI-compatible endpoints were misidentified as native Ollama, causing the streaming parser to silently discard all tokens. Backend detection now validates the response body and correctly identifies llama.cpp as OpenAI-compatible. Added fallback parsing and auto-detection on first stream when backend type was never explicitly set.
+
+---
+
 ## v0.7.1 — 2026-03-04
 
 ### Bug Fixes
@@ -338,5 +345,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-04 (v0.7.1)
+Last updated: 2026-03-04 (v0.7.2)
 
