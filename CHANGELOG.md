@@ -2,6 +2,13 @@
 
 ---
 
+## v0.5.5 — 2026-03-03
+
+### Bug Fixes
+- **Fixed registry error message on startup** — On systems where LlamaTalk CLI is not installed via the Windows installer, a spurious "The system was unable to find the specified registry key or value" error was printed to the terminal on every launch. The registry check is now fully silent as intended.
+
+---
+
 ## v0.5.4 — 2026-03-03
 
 ### Bug Fixes
@@ -298,5 +305,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-03
+Last updated: 2026-03-03 (v0.5.5)
 
