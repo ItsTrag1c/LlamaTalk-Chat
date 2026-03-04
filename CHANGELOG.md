@@ -4,6 +4,16 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.7.3 — 2026-03-04
+
+### New Features
+- **PowerShell one-liner install** — Run `irm .../install.ps1 | iex` in PowerShell to download and install the latest release with no admin rights needed. Installs to `%USERPROFILE%\LlamaTalkCLI\`, writes the `llama` shorthand, and adds it to your user PATH automatically.
+
+### Improvements
+- **`/update` works from Program Files** — When installed to a protected directory like Program Files, `/update` now downloads to a temp folder and elevates the update via a UAC prompt. Previously the update would silently fail due to write permissions.
+
+---
+
 ## v0.7.2 — 2026-03-04
 
 ### Bug Fixes
@@ -336,7 +346,6 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ## Upcoming
 
-- Streaming responses (token-by-token display)
 - Multi-profile support
 - Conversation export to markdown or text
 - Syntax highlighting for code blocks in responses
@@ -345,5 +354,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-04 (v0.7.2)
+Last updated: 2026-03-04 (v0.7.3)
 
