@@ -4,6 +4,13 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.7.4 — 2026-03-04
+
+### Bug Fixes
+- **Auto-detect model on startup** — When no model was explicitly selected, the chat prompt displayed a stale or empty model name. The app now auto-detects the first available model from your backend on startup and selects it automatically. The model only changes when you explicitly switch via `/model`.
+
+---
+
 ## v0.7.3 — 2026-03-04
 
 ### New Features
