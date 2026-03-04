@@ -2,6 +2,13 @@
 
 ---
 
+## v0.5.4 — 2026-03-03
+
+### Bug Fixes
+- **Fixed "Pkg: Error reading from file" crash on launch** — The version metadata stamping step (`rcedit`) introduced in v0.5.3 was corrupting the embedded Node.js runtime inside the EXE, making it impossible to start. Removed the post-build stamping step to restore a working executable.
+
+---
+
 ## v0.5.3 — 2026-03-03
 
 ### Bug Fixes
