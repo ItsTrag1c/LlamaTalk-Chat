@@ -35,7 +35,7 @@ export async function fetchLatestRelease() {
       },
     }
   );
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
 
   const data = await res.json();
   const tagName = data.tag_name;

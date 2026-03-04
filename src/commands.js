@@ -680,7 +680,8 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     try {
       release = await fetchLatestRelease();
     } catch {
-      // Network error — silent
+      process.stdout.write("\r" + YELLOW + "  Could not check for updates — try again later." + RESET + "          \n");
+      return { handled: true };
     }
 
     if (!release) {
