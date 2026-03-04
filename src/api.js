@@ -314,12 +314,20 @@ async function streamOllama(messages, model, url, temperature, onToken, signal) 
     },
     signal
   );
+  let usage = null;
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     try {
       const obj = JSON.parse(line);
       if (obj.message?.content) onToken(obj.message.content);
-      if (obj.done) break;
+      if (obj.done) {
+        usage = {
+          promptTokens: obj.prompt_eval_count || 0,
+          outputTokens: obj.eval_count || 0,
+          evalDurationNs: obj.eval_duration || null,
+        };
+        break;
+      }
     } catch {
       // Fallback: llama.cpp may send SSE format (data: {...}) even on /api/chat
       if (line.startsWith("data: ")) {
@@ -333,6 +341,7 @@ async function streamOllama(messages, model, url, temperature, onToken, signal) 
       }
     }
   }
+  return usage;
 }
 
 async function streamOpenAICompat(messages, model, url, temperature, onToken, signal) {
@@ -347,6 +356,7 @@ async function streamOpenAICompat(messages, model, url, temperature, onToken, si
     },
     signal
   );
+  let usage = null;
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     if (!line.startsWith("data: ")) continue;
@@ -356,8 +366,15 @@ async function streamOpenAICompat(messages, model, url, temperature, onToken, si
       const obj = JSON.parse(data);
       const token = obj.choices?.[0]?.delta?.content;
       if (token) onToken(token);
+      if (obj.usage) {
+        usage = {
+          promptTokens: obj.usage.prompt_tokens || 0,
+          outputTokens: obj.usage.completion_tokens || 0,
+        };
+      }
     } catch { /* skip */ }
   }
+  return usage;
 }
 
 async function streamAnthropic(messages, model, systemText, apiKey, temperature, onToken, signal) {
@@ -383,17 +400,25 @@ async function streamAnthropic(messages, model, systemText, apiKey, temperature,
     },
     signal
   );
+  let usage = { promptTokens: 0, outputTokens: 0 };
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     if (!line.startsWith("data: ")) continue;
     try {
       const obj = JSON.parse(line.slice(6));
+      if (obj.type === "message_start" && obj.message?.usage) {
+        usage.promptTokens = obj.message.usage.input_tokens || 0;
+      }
       if (obj.type === "content_block_delta" && obj.delta?.text) {
         onToken(obj.delta.text);
+      }
+      if (obj.type === "message_delta" && obj.usage) {
+        usage.outputTokens = obj.usage.output_tokens || 0;
       }
       if (obj.type === "message_stop") break;
     } catch { /* skip */ }
   }
+  return usage;
 }
 
 async function streamGoogle(messages, model, systemText, apiKey, temperature, onToken, signal) {
@@ -416,6 +441,7 @@ async function streamGoogle(messages, model, systemText, apiKey, temperature, on
     },
     signal
   );
+  let usage = null;
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     if (!line.startsWith("data: ")) continue;
@@ -423,8 +449,15 @@ async function streamGoogle(messages, model, systemText, apiKey, temperature, on
       const obj = JSON.parse(line.slice(6));
       const text = obj.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) onToken(text);
+      if (obj.usageMetadata) {
+        usage = {
+          promptTokens: obj.usageMetadata.promptTokenCount || 0,
+          outputTokens: obj.usageMetadata.candidatesTokenCount || 0,
+        };
+      }
     } catch { /* skip */ }
   }
+  return usage;
 }
 
 async function streamOpenAI(messages, model, apiKey, temperature, onToken, signal) {
@@ -436,10 +469,11 @@ async function streamOpenAI(messages, model, apiKey, temperature, onToken, signa
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ model, messages, temperature, stream: true }),
+      body: JSON.stringify({ model, messages, temperature, stream: true, stream_options: { include_usage: true } }),
     },
     signal
   );
+  let usage = null;
   for await (const line of streamLines(res)) {
     if (signal?.aborted) break;
     if (!line.startsWith("data: ")) continue;
@@ -449,8 +483,15 @@ async function streamOpenAI(messages, model, apiKey, temperature, onToken, signa
       const obj = JSON.parse(data);
       const token = obj.choices?.[0]?.delta?.content;
       if (token) onToken(token);
+      if (obj.usage) {
+        usage = {
+          promptTokens: obj.usage.prompt_tokens || 0,
+          outputTokens: obj.usage.completion_tokens || 0,
+        };
+      }
     } catch { /* skip */ }
   }
+  return usage;
 }
 
 // ---------------------------------------------------------------------------
@@ -479,19 +520,23 @@ export async function streamMessage(messages, config, systemPrompt, onToken, sig
       ? [{ role: "system", content: systemPrompt }, ...messages]
       : messages;
     if (bt === "openai-compatible") {
-      return await streamOpenAICompat(msgs, model, config.ollamaUrl, temperature, onToken, signal);
+      const usage = await streamOpenAICompat(msgs, model, config.ollamaUrl, temperature, onToken, signal);
+      return { provider: "openai-compatible", usage };
     }
-    return await streamOllama(msgs, model, config.ollamaUrl, temperature, onToken, signal);
+    const usage = await streamOllama(msgs, model, config.ollamaUrl, temperature, onToken, signal);
+    return { provider: "ollama", usage };
   }
 
   if (provider === "anthropic") {
     if (!config.apiKey_anthropic) throw new Error("Anthropic API key not set. Use /set api-key anthropic <key>");
-    return await streamAnthropic(messages, model, systemPrompt, config.apiKey_anthropic, temperature, onToken, signal);
+    const usage = await streamAnthropic(messages, model, systemPrompt, config.apiKey_anthropic, temperature, onToken, signal);
+    return { provider: "anthropic", usage };
   }
 
   if (provider === "google") {
     if (!config.apiKey_google) throw new Error("Google API key not set. Use /set api-key google <key>");
-    return await streamGoogle(messages, model, systemPrompt, config.apiKey_google, temperature, onToken, signal);
+    const usage = await streamGoogle(messages, model, systemPrompt, config.apiKey_google, temperature, onToken, signal);
+    return { provider: "google", usage };
   }
 
   if (provider === "openai") {
@@ -499,7 +544,8 @@ export async function streamMessage(messages, config, systemPrompt, onToken, sig
     const msgs = systemPrompt
       ? [{ role: "system", content: systemPrompt }, ...messages]
       : messages;
-    return await streamOpenAI(msgs, model, config.apiKey_openai, temperature, onToken, signal);
+    const usage = await streamOpenAI(msgs, model, config.apiKey_openai, temperature, onToken, signal);
+    return { provider: "openai", usage };
   }
 
   throw new Error(`Unknown provider for model: ${model}`);

@@ -10,7 +10,7 @@ import { sendMessage, detectBackend, getOllamaModels, getOpenAICompatModels, get
 import { runInstall, runUninstall, ensureLlamaCmd } from "./src/install.js";
 import { fetchLatestRelease } from "./src/updater.js";
 
-const VERSION = "0.7.5";
+const VERSION = "0.8.0";
 
 const RED = "\x1b[31m";
 const ORANGE = "\x1b[38;5;208m";

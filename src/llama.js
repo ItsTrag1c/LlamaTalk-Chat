@@ -34,23 +34,29 @@ const DIM   = "\x1b[2m";
 // Coin-spin frames: gives the illusion of a rotating coin
 const COIN_FRAMES = ["○", "◑", "●", "◐"];
 
-export async function showTokenCount(messages, { spin = true } = {}) {
-  const tok = (s) => Math.ceil((s || "").length / 4);
-  let total = 0;
-  for (const m of messages) total += tok(m.content) + 4;
+export async function showTokenCount(messages, { spin = true, lastUsage } = {}) {
+  let total;
+  if (lastUsage) {
+    total = (lastUsage.promptTokens || 0) + (lastUsage.outputTokens || 0);
+  } else {
+    const tok = (s) => Math.ceil((s || "").length / 4);
+    total = 0;
+    for (const m of messages) total += tok(m.content) + 4;
+  }
+  const label = lastUsage ? `${total.toLocaleString()} tokens` : `~${total.toLocaleString()} tokens`;
 
   if (spin && messages.length > 0) {
     // Brief spin animation (5 frames × 65 ms ≈ 325 ms)
     for (let i = 0; i < 5; i++) {
       process.stdout.write(
-        `  ${GOLD}${COIN_FRAMES[i % COIN_FRAMES.length]}${RESET}  ${DIM}${total.toLocaleString()} tokens${RESET}   \r`
+        `  ${GOLD}${COIN_FRAMES[i % COIN_FRAMES.length]}${RESET}  ${DIM}${label}${RESET}   \r`
       );
       await new Promise((r) => setTimeout(r, 65));
     }
   }
   // Settle on the full-coin with the final count
   process.stdout.write(
-    `  ${GOLD}●${RESET}  ${DIM}${total.toLocaleString()} tokens${RESET}   \n`
+    `  ${GOLD}●${RESET}  ${DIM}${label}${RESET}   \n`
   );
 }
 

@@ -110,13 +110,15 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
     process.exit(0);
   });
 
+  let lastUsage = null;
+
   while (true) {
     // Show token count + shortcut hint anchored to the input area.
     // Track how many lines we print so we can erase them after the user submits,
     // keeping the scroll history clean.
     let prePromptLines = 0;
     if (messages.length > 0) {
-      await showTokenCount(messages, { spin: false });
+      await showTokenCount(messages, { spin: false, lastUsage });
       prePromptLines++;
     }
     printShortcutHint();
@@ -131,9 +133,14 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
         process.stdout.write("\x1b[2J\x1b[H"); // clear screen
         printBanner(version);
         if (messages.length > 0) {
-          const tok = (s) => Math.ceil((s || "").length / 4);
-          let total = 0;
-          for (const m of messages) total += tok(m.content) + 4;
+          let total;
+          if (lastUsage) {
+            total = lastUsage.promptTokens + lastUsage.outputTokens;
+          } else {
+            const tok = (s) => Math.ceil((s || "").length / 4);
+            total = 0;
+            for (const m of messages) total += tok(m.content) + 4;
+          }
           process.stdout.write(`  \x1b[38;5;220m●\x1b[0m  \x1b[2m${total.toLocaleString()} tokens\x1b[0m   \n`);
         }
         printShortcutHint();
@@ -219,9 +226,12 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
     let tokenQueue = [];
     let drainTimer = null;
     const wdMs = config.wordDelay || 0;
+    let streamTokenCount = 0;
+    const streamStartMs = Date.now();
 
     try {
-      await streamMessage(messages, config, systemPrompt, (token) => {
+      const result = await streamMessage(messages, config, systemPrompt, (token) => {
+        streamTokenCount++;
         if (firstToken) {
           firstToken = false;
           stopThinking();
@@ -279,6 +289,25 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
     }
 
     process.stdout.write("\n");
+
+    // Print TK/S summary line
+    const elapsedMs = Date.now() - streamStartMs;
+    const usage = result?.usage;
+    const outputTokens = usage?.outputTokens || streamTokenCount;
+    if (outputTokens > 0 && elapsedMs > 0) {
+      let tks;
+      if (result?.provider === "ollama" && usage?.evalDurationNs && usage.evalDurationNs > 0) {
+        tks = (usage.outputTokens / (usage.evalDurationNs / 1e9)).toFixed(1);
+      } else {
+        tks = (outputTokens / (elapsedMs / 1000)).toFixed(1);
+      }
+      process.stdout.write(`  ${DIM}${DARK_YELLOW}●${RESET}  ${DIM}${outputTokens.toLocaleString()} tokens · ${tks} tk/s${RESET}\n`);
+    }
+
+    // Store usage for showTokenCount
+    if (usage) {
+      lastUsage = { promptTokens: usage.promptTokens || 0, outputTokens: usage.outputTokens || 0 };
+    }
 
     messages.push({ role: "assistant", content: response });
     if (!noHistory) saveHistory(messages, encKey);

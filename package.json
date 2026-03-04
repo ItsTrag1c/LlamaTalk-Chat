@@ -1,6 +1,6 @@
 {
   "name": "llamatalkcli",
-  "version": "0.7.5",
+  "version": "0.8.0",
   "author": "ItsTrag1c",
   "type": "module",
   "bin": {
