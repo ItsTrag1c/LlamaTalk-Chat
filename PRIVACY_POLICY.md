@@ -1,7 +1,7 @@
 # LlamaTalk — Privacy Policy
 
 **Effective Date:** March 2, 2026
-**Last Updated:** March 3, 2026 (rev. 3)
+**Last Updated:** March 4, 2026 (rev. 4)
 
 ---
 
@@ -66,7 +66,7 @@ The LlamaTalk suite **does not:**
 - Track your behavior or conversations
 - Store data on any remote server
 - Include tracking cookies or identifiers
-- Phone home to report errors or crashes
+- Phone home to report errors or crashes (see **Automatic Update Checks** below for the only automatic network activity)
 - Collect information about your device, OS, or installed software
 - Share your data with third parties
 
@@ -96,6 +96,17 @@ When you send a message to a cloud model:
 5. API keys are **never** included in exported profile files
 
 You remain in full control of which providers are enabled and can disable them at any time in Settings.
+
+### Automatic Update Checks
+
+Both LlamaTalk Desktop and LlamaTalkCLI check for new versions automatically when the app starts. This is the only automatic network activity either app performs. Here is exactly what happens:
+
+1. A single HTTPS GET request is made to the public GitHub Releases API (`https://api.github.com/repos/ItsTrag1c/LlamaTalk-Desktop/releases/latest` or `.../LlamaTalk-CLI/...`)
+2. The request includes only a `User-Agent` header identifying the app (e.g. "LlamaTalk Desktop") — **no user data, device identifiers, or analytics are sent**
+3. If a newer version is found, a notification appears in the app (Desktop: orange dot on Settings tab; CLI: dim hint after the banner)
+4. **No update is downloaded or installed without your explicit confirmation**
+
+GitHub will log the IP address of the request as with any public API call — this is standard for HTTP traffic and is not controlled by LlamaTalk. No additional information is collected or transmitted.
 
 ---
 
@@ -223,6 +234,7 @@ LlamaTalk is designed with privacy-by-default principles consistent with:
 - **2026-03-03** — Updated to cover LlamaTalkCLI. Corrected PIN hashing details (Desktop upgraded to PBKDF2 in v0.8.0). Added cloud provider privacy section. Added deletion log disclosure. Added export audit trail. Documented CLI session history clearing behavior.
 - **2026-03-03 (rev. 2)** — Corrected CLI PIN hashing (upgraded to PBKDF2 in v0.3.6; legacy migration noted). Added Security Reviews section. Added cancel propagation note. Added dependency audit reference in Third-Party Dependencies section.
 - **2026-03-03 (rev. 3)** — Major update for Desktop v0.10.0 and CLI v0.6.0. Added conversation encryption at rest (Desktop: AES-256-GCM, key in Credential Manager). Added API key and history encryption (CLI: AES-256-GCM, PIN-derived key). Documented Windows Credential Manager usage for Desktop credentials. Added CLI session inactivity timeout. Added CLI PIN minimum length. Added CLI file permissions (icacls). Added CLI `.json`-only import restriction. Reorganized Security Measures into Encryption & Security with subsections. Updated Data You Control with encryption control. Updated Legal Compliance with encryption and storage limitation references.
+- **2026-03-04 (rev. 4)** — Added Automatic Update Checks section documenting the startup GitHub API check in both apps (the only automatic network activity). Clarified "Data We Do NOT Collect" with cross-reference to update check disclosure. Covers Desktop v0.12.1 and CLI v0.8.1.
 
 ---
 
