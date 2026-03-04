@@ -4,6 +4,14 @@ A running history of all features, fixes, and improvements made to LlamaTalk Des
 
 ---
 
+## v0.10.0 — 2026-03-03
+
+### Security
+- **Conversation history encrypted at rest** — When a profile with a PIN exists, all conversations stored in localStorage are now encrypted using AES-256-GCM. A random 256-bit encryption key is generated at profile creation and stored in Windows Credential Manager (`convEncKey`). Conversations are decrypted in memory after the credential store loads and re-encrypted on every change. Users without a profile or PIN are unaffected — conversations remain as plaintext. Clearing your profile decrypts conversations back to plaintext and removes the key. Importing a profile with a PIN generates a fresh encryption key on the new device. Existing users with a PIN are migrated automatically on first launch.
+- **API key security note in Settings** — A new informational note below the API Providers section confirms that API keys are stored locally, sent only to their respective provider over HTTPS, and never included in profile exports.
+
+---
+
 ## v0.9.2 — 2026-03-03
 
 ### Fixes
@@ -454,7 +462,7 @@ A running history of all features, fixes, and improvements made to LlamaTalk Des
 
 *This document is updated with each new version of LlamaTalk Desktop.*
 
-*Last updated: 2026-03-03*
+*Last updated: 2026-03-03 (v0.10.0)*
 
 ---
 
