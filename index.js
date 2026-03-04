@@ -6,11 +6,11 @@ import { createInterface } from "readline";
 import { loadConfig, saveConfig, isFirstRun, pinRequired, verifyPin, needsPinMigration, hashPin, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveConfigWithKey } from "./src/config.js";
 import { runOnboarding } from "./src/onboarding.js";
 import { runChat } from "./src/chat.js";
-import { sendMessage, detectBackend } from "./src/api.js";
+import { sendMessage, detectBackend, getOllamaModels, getOpenAICompatModels } from "./src/api.js";
 import { runInstall, runUninstall, ensureLlamaCmd } from "./src/install.js";
 import { fetchLatestRelease } from "./src/updater.js";
 
-const VERSION = "0.7.3";
+const VERSION = "0.7.4";
 
 const RED = "\x1b[31m";
 const ORANGE = "\x1b[38;5;208m";
@@ -306,6 +306,19 @@ async function main() {
   ]);
   if (detectedBackend && detectedBackend !== "unknown") {
     config.backendType = detectedBackend;
+  }
+
+  // Auto-detect model on startup if none is saved
+  if (!config.selectedModel) {
+    try {
+      const fetcher = detectedBackend === "openai" ? getOpenAICompatModels : getOllamaModels;
+      const models = await fetcher(config.ollamaUrl);
+      const visible = models.filter((m) => !(config.hiddenModels || []).includes(m));
+      if (visible.length > 0) {
+        config.selectedModel = visible[0];
+        saveConfig(config);
+      }
+    } catch { /* Ollama not running — user will see "no model" prompt */ }
   }
 
   let result = await runChat(rl, config, encKey, {
