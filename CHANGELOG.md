@@ -2,6 +2,13 @@
 
 ---
 
+## v0.5.2 — 2026-03-03
+
+### Bug Fixes
+- **Fixed `/update` falsely reporting "up to date"** — When the GitHub update check failed (network error, API rate limit, etc.), the error was silently swallowed and `/update` reported "LlamaTalkCLI is up to date" instead of telling you the check failed. Now shows "Could not check for updates — try again later" when the check fails.
+
+---
+
 ## v0.5.1 — 2026-03-03
 
 ### Bug Fixes
