@@ -1,6 +1,6 @@
 {
   "name": "llamatalkcli",
-  "version": "0.5.5",
+  "version": "0.6.0",
   "author": "ItsTrag1c",
   "type": "module",
   "bin": {
@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
-    "jimp": "^0.16.13",
+    "jimp": "^1.6.0",
     "pdfkit": "^0.17.2",
     "pkg": "^5.8.1",
     "png-to-ico": "^3.0.1",

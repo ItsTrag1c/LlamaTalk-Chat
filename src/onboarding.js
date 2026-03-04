@@ -75,16 +75,16 @@ export async function runOnboarding(rl, config) {
     while (!pinOk) {
       const pin1 = await askMasked(BOLD + "  Enter PIN: " + RESET);
       const pin2 = await askMasked(BOLD + "  Confirm PIN: " + RESET);
-      if (pin1 === pin2 && pin1.length > 0) {
+      if (pin1.length < 4) {
+        console.log(RED + "  PIN must be at least 4 characters." + RESET);
+      } else if (pin1 !== pin2) {
+        console.log(RED + "  PINs don't match, try again." + RESET);
+      } else {
         config.pinHash = hashPin(pin1);
         config.encKeySalt = generateEncKeySalt();
         encKey = deriveEncKey(pin1, config.encKeySalt);
         pinOk = true;
         console.log(GREEN + "  PIN set!" + RESET + "\n");
-      } else if (pin1 !== pin2) {
-        console.log(RED + "  PINs don't match, try again." + RESET);
-      } else {
-        console.log(RED + "  PIN can't be empty, try again." + RESET);
       }
     }
   } else {

@@ -233,6 +233,7 @@ ${BOLD}Settings${RESET}
   ${ORANGE}/set prompt clear [model]${RESET}      Clear system prompt for a model
   ${ORANGE}/set nick <name>${RESET}               Set nickname for current model
   ${ORANGE}/set pin${RESET}                       Change or set PIN
+  ${ORANGE}/set timeout <minutes>${RESET}          Set inactivity timeout (0 = off)
   ${ORANGE}/set pin-frequency <freq>${RESET}      Set PIN frequency (always/30days/never)
   ${ORANGE}/hide <model>${RESET}                  Hide a model from the list
   ${ORANGE}/unhide <model>${RESET}                Unhide a model
@@ -474,6 +475,8 @@ ${DIM}Config: ${getConfigPath()}${RESET}
         newEncKey = null;
         console.log(GREEN + "  PIN removed." + RESET);
         pinOk = true;
+      } else if (p1.length < 4) {
+        console.log(RED + "  PIN must be at least 4 characters." + RESET);
       } else {
         const p2 = await askMasked("  Confirm PIN: ");
         if (p1 === p2) {
@@ -491,6 +494,20 @@ ${DIM}Config: ${getConfigPath()}${RESET}
       }
     }
     return { handled: true, encKey: newEncKey };
+  }
+
+  // /set timeout <minutes>
+  if (cmd === "/set" && args[0] === "timeout" && args[1]) {
+    const mins = parseInt(args[1], 10);
+    if (isNaN(mins) || mins < 0 || mins > 480) {
+      console.log(RED + "  Use: /set timeout <0–480> (minutes, 0 = disabled)" + RESET);
+      return { handled: true };
+    }
+    config.inactivityTimeout = mins;
+    saveConfig(config);
+    const label = mins === 0 ? "disabled" : `${mins} minutes`;
+    console.log(GREEN + `  Inactivity timeout: ${label}.` + RESET);
+    return { handled: true };
   }
 
   // /set pin-frequency <freq>
@@ -555,6 +572,10 @@ ${DIM}Config: ${getConfigPath()}${RESET}
   // /import <path>
   if (cmd === "/import" && args[0]) {
     const src = args[0];
+    if (!src.toLowerCase().endsWith(".json")) {
+      console.log(RED + "  Import file must be a .json file." + RESET);
+      return { handled: true };
+    }
     if (!existsSync(src)) {
       console.log(RED + `  File not found: ${src}` + RESET);
       return { handled: true };

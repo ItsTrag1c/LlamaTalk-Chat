@@ -22,6 +22,7 @@ const DEFAULTS = {
   enabledProviders: { anthropic: false, google: false, openai: false },
   onboardingDone: false,
   encKeySalt: null,
+  inactivityTimeout: 30,
 };
 
 export function getConfigPath() {

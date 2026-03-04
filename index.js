@@ -10,7 +10,7 @@ import { sendMessage } from "./src/api.js";
 import { runInstall, runUninstall, ensureLlamaCmd } from "./src/install.js";
 import { fetchLatestRelease } from "./src/updater.js";
 
-const VERSION = "0.5.5";
+const VERSION = "0.6.0";
 
 const RED = "\x1b[31m";
 const ORANGE = "\x1b[38;5;208m";
@@ -192,6 +192,28 @@ async function authenticate(config) {
 }
 
 // ---------------------------------------------------------------------------
+// Re-authenticate after inactivity timeout (PIN only, no banner/header)
+// ---------------------------------------------------------------------------
+async function reAuth(config) {
+  let attempts = 0;
+  const maxAttempts = 3;
+  while (attempts < maxAttempts) {
+    const pin = await askMasked(BOLD + "Enter PIN: " + RESET);
+    if (verifyPin(pin, config.pinHash)) {
+      config.lastUnlockTime = new Date().toISOString();
+      saveConfig(config);
+      return pin;
+    }
+    attempts++;
+    if (attempts < maxAttempts) {
+      console.log(RED + `  Incorrect PIN. ${maxAttempts - attempts} attempt(s) remaining.` + RESET);
+    }
+  }
+  console.log(RED + "  Too many incorrect attempts. Exiting." + RESET);
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 async function main() {
@@ -280,12 +302,30 @@ async function main() {
     new Promise((r) => setTimeout(() => r(null), 3000)),
   ]);
 
-  await runChat(rl, config, encKey, {
+  let result = await runChat(rl, config, encKey, {
     version: VERSION,
     noHistory: args.noHistory,
     noBanner: args.noBanner,
     remoteUpdate,
   });
+
+  while (result?.timedOut) {
+    console.log(DIM + "\n  Session timed out due to inactivity." + RESET);
+    if (config.pinHash) {
+      const pin2 = await reAuth(config);
+      if (!pin2) process.exit(0);
+      encKey = deriveEncKey(pin2, config.encKeySalt);
+      config = decryptApiKeys(config, encKey);
+    }
+    const rl2 = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+    rl2.on("close", () => process.exit(0));
+    result = await runChat(rl2, config, encKey, {
+      version: VERSION,
+      noHistory: args.noHistory,
+      noBanner: true,
+      remoteUpdate: null,
+    });
+  }
 }
 
 main().catch((err) => {

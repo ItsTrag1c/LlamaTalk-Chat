@@ -125,9 +125,28 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
     const prompt = buildPrompt(config);
     let line;
     try {
-      line = await new Promise((resolve) => {
-        rl.question(prompt, resolve);
-      });
+      const timeoutMs = (config.inactivityTimeout ?? 30) * 60 * 1000;
+      const userInput = new Promise((resolve) => rl.question(prompt, resolve));
+
+      if (timeoutMs > 0) {
+        let timer;
+        const timeout = new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("__INACTIVITY__")), timeoutMs);
+        });
+        try {
+          line = await Promise.race([userInput, timeout]);
+          clearTimeout(timer);
+        } catch (e) {
+          if (e.message === "__INACTIVITY__") {
+            if (!noHistory) saveHistory(messages, encKey);
+            rl.close();
+            return { timedOut: true };
+          }
+          throw e;
+        }
+      } else {
+        line = await userInput;
+      }
     } catch {
       // readline closed
       break;
@@ -199,4 +218,5 @@ export async function runChat(rl, config, encKeyIn, opts = {}) {
 
   if (!noHistory) saveHistory([], encKey); // clear history — next run starts a new session
   saveConfig(config);
+  return {};
 }
