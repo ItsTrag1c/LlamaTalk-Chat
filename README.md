@@ -6,6 +6,16 @@ LlamaTalk CLI is a standalone Windows terminal app for chatting with [Ollama](ht
 
 ---
 
+## Install
+
+```powershell
+irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-CLI/master/install.ps1 | iex
+```
+
+Run this in PowerShell to download and install the latest release. Open a new terminal and type `llama`.
+
+---
+
 ## Download
 
 **[→ Latest Release](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest)**
@@ -35,13 +45,21 @@ LlamaTalk CLI is a standalone Windows terminal app for chatting with [Ollama](ht
 
 ## Quick Start
 
-### Option A — Installer (Recommended)
+### Option A — PowerShell One-Liner (Recommended)
+
+```powershell
+irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-CLI/master/install.ps1 | iex
+```
+
+No admin rights needed. Installs to `%USERPROFILE%\LlamaTalkCLI\` and adds `llama` to your PATH.
+
+### Option B — Installer
 
 1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest)
 2. Run the installer (UAC prompt will appear)
 3. Open a **new** CMD or PowerShell window and type `llama`
 
-### Option B — Standalone EXE
+### Option C — Standalone EXE
 
 1. Download `LlamaTalkCLI.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest)
 2. Place it anywhere — `llama.cmd` is auto-created next to it on first run

@@ -8,6 +8,28 @@ import { getOllamaModels, getOpenAICompatModels, detectBackend, CLOUD_MODELS } f
 import { printBanner } from "./llama.js";
 import { parseSemver, semverGt, fetchLatestRelease, downloadExe } from "./updater.js";
 
+function isWritableDir(dir) {
+  const probe = join(dir, `.llamatalkcli-probe-${Date.now()}.tmp`);
+  try {
+    writeFileSync(probe, "", { flag: "wx" });
+    unlinkSync(probe);
+    return true;
+  } catch { return false; }
+}
+
+function spawnUpdateBat(batPath, needsElevation) {
+  if (needsElevation) {
+    const child = spawn("powershell.exe", [
+      "-NoProfile", "-Command",
+      `Start-Process -FilePath 'cmd.exe' -ArgumentList '/c','${batPath.replace(/'/g, "''")}' -Verb RunAs -WindowStyle Hidden`,
+    ], { detached: true, stdio: "ignore" });
+    child.unref();
+  } else {
+    const child = spawn("cmd.exe", ["/c", batPath], { detached: true, stdio: "ignore" });
+    child.unref();
+  }
+}
+
 const ALLOWED_PROVIDERS = ["anthropic", "google", "openai"];
 const PIN_FREQS = ["always", "30days", "never"];
 
@@ -698,6 +720,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
         console.log(DIM + "  Update cancelled." + RESET);
         return { handled: true };
       }
+      const needsElevation = !isWritableDir(installDir);
       const batPath = join(tmpdir(), "llamatalkcli-update.bat");
       const currentExe = process.execPath;
       const bat = [
@@ -708,9 +731,9 @@ ${DIM}Config: ${getConfigPath()}${RESET}
         `del "%~f0"`,
       ].join("\r\n");
       writeFileSync(batPath, bat, "utf8");
+      if (needsElevation) console.log(DIM + "  You may see a UAC prompt." + RESET);
       console.log(ORANGE + `\n  Installing v${localBest.ver}... LlamaTalkCLI will close now.\n` + RESET);
-      const child = spawn("cmd.exe", ["/c", batPath], { detached: true, stdio: "ignore" });
-      child.unref();
+      spawnUpdateBat(batPath, needsElevation);
       process.exit(0);
     }
 
@@ -744,8 +767,9 @@ ${DIM}Config: ${getConfigPath()}${RESET}
       return { handled: true };
     }
 
+    const needsElevation = !isWritableDir(installDir);
     const exeName = `LlamaTalkCLI_${release.version}.exe`;
-    const destPath = join(installDir, exeName);
+    const destPath = needsElevation ? join(tmpdir(), exeName) : join(installDir, exeName);
     console.log(ORANGE + `\n  Downloading LlamaTalkCLI v${release.version} (${release.sizeMB} MB)...` + RESET);
 
     let actualHash;
@@ -777,17 +801,18 @@ ${DIM}Config: ${getConfigPath()}${RESET}
 
     const batPath = join(tmpdir(), "llamatalkcli-update.bat");
     const currentExe = process.execPath;
-    const bat = [
+    const batLines = [
       "@echo off",
       "ping -n 3 127.0.0.1 > nul",
       `copy /Y "${destPath}" "${currentExe}"`,
       `del /Q "${installDir}\\LlamaTalkCLI_*.exe" 2>nul`,
-      `del "%~f0"`,
-    ].join("\r\n");
-    writeFileSync(batPath, bat, "utf8");
+    ];
+    if (needsElevation) batLines.push(`del /Q "${destPath}" 2>nul`);
+    batLines.push(`del "%~f0"`);
+    writeFileSync(batPath, batLines.join("\r\n"), "utf8");
+    if (needsElevation) console.log(DIM + "  You may see a UAC prompt." + RESET);
     console.log(ORANGE + `\n  Installing v${release.version}... LlamaTalkCLI will close now.\n` + RESET);
-    const child = spawn("cmd.exe", ["/c", batPath], { detached: true, stdio: "ignore" });
-    child.unref();
+    spawnUpdateBat(batPath, needsElevation);
     process.exit(0);
   }
 
