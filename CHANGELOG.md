@@ -5,6 +5,18 @@ Last updated: 2026-03-04
 
 ---
 
+## v0.13.0 — 2026-03-04
+
+### New Features
+- **Multi-server support** — You can now connect to multiple local model servers simultaneously. Add additional servers in Settings under "Additional Local Servers" — models from all servers are aggregated into a single list. Each model is routed to the correct server automatically.
+- **Running model detection** — Models currently loaded in memory on Ollama servers are shown with a 🟢 indicator in the model selector. Running status is polled every 10 seconds.
+
+### Improvements
+- **"Ollama" renamed to "Local Server" / "Local Models"** — All user-facing references to "Ollama" have been replaced with generic terms ("Local Server," "Local Models") to better reflect support for Ollama, llama.cpp, LM Studio, vLLM, and other backends.
+- **Profile export/import includes additional servers** — The `localServers` list is now included in profile exports and restored on import.
+
+---
+
 ## v0.12.1 — 2026-03-04
 
 ### Bug Fixes
@@ -503,7 +515,7 @@ Last updated: 2026-03-04
 
 *This document is updated with each new version of LlamaTalk Desktop.*
 
-*Last updated: 2026-03-04 (v0.12.1)*
+*Last updated: 2026-03-04 (v0.13.0)*
 
 ---
 
