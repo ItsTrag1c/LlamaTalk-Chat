@@ -237,7 +237,12 @@ function getModelPrompt(config, model) {
 function buildAllModels(ollamaModels, config) {
   const models = [...ollamaModels.filter((m) => !config.hiddenModels.includes(m))];
   for (const [provider, list] of Object.entries(CLOUD_MODELS)) {
-    if (config.enabledProviders[provider]) models.push(...list);
+    if (config.enabledProviders[provider]) {
+      const hasKey = config[`apiKey_${provider}`] && 
+        (typeof config[`apiKey_${provider}`] === "string" && config[`apiKey_${provider}`].length > 0) &&
+        !(config[`apiKey_${provider}`]?.v && config[`apiKey_${provider}`]?.iv);
+      if (hasKey) models.push(...list);
+    }
   }
   return models;
 }

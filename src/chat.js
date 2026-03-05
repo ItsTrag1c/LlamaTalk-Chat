@@ -40,14 +40,16 @@ function startEscWatch(onCancel) {
 
   const onData = (chunk) => {
     if (stopped || fired) return;
-    // Esc alone = single byte 0x1b; arrow keys / F-keys start with 0x1b + more bytes
-    if (chunk[0] === 0x1b && chunk.length === 1) {
+    const byte = chunk[0];
+    if (byte === 0x1b && chunk.length === 1) {
       fired = true;
       onCancel();
     }
   };
 
-  try { process.stdin.setRawMode(true); } catch { /* non-TTY stdin — no raw mode */ }
+  if (!process.stdin.isTTY) return () => {};
+
+  try { process.stdin.setRawMode(true); } catch { return () => {}; }
   process.stdin.resume();
   process.stdin.on("data", onData);
 

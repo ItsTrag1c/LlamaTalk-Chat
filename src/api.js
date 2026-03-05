@@ -46,7 +46,10 @@ export const CLOUD_MODELS = {
 
 export function getProvider(model, config) {
   for (const [provider, models] of Object.entries(CLOUD_MODELS)) {
-    if (models.includes(model)) return provider;
+    if (models.includes(model)) {
+      const enabledKey = `enabledProviders.${provider}`;
+      if (config[enabledKey]) return provider;
+    }
   }
   return "ollama";
 }
