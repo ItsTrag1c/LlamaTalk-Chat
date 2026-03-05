@@ -1,6 +1,16 @@
 # Changelog — LlamaTalkCLI
 
-Last updated: 2026-03-04 (v0.9.0)
+Last updated: 2026-03-04 (v0.9.10)
+
+---
+
+## v0.9.10 — 2026-03-04
+
+### Bug Fixes
+- **Fixed cloud model misidentification** — Local models with the same name as cloud models (e.g., "gpt-4o") are no longer misidentified as cloud providers. Cloud models are now only shown when their provider is enabled AND an API key is configured.
+- **Fixed /models showing unavailable cloud models** — Cloud models no longer appear in the model list unless a valid API key is set for that provider, preventing confusion when selecting a cloud model without credentials.
+- **Fixed config import with null values** — Importing config files with null values no longer overwrites existing settings with null. Null values are now skipped during merge.
+- **Fixed Esc detection on non-TTY terminals** — The app no longer attempts raw mode on non-interactive stdin, preventing errors when running in certain environments.
 
 ---
 
