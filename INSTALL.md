@@ -1,18 +1,22 @@
 # Install LlamaTalkCLI
 
-LlamaTalkCLI is a standalone Windows terminal app. No Node.js or admin rights required for the direct EXE. The NSIS installer handles everything automatically.
+LlamaTalkCLI is a standalone Windows terminal app. No Node.js or admin rights required.
 
 ---
 
-## Option A — Windows Installer (Recommended)
+## Option A — One-Line Install (Recommended)
 
-Download `LlamaTalk CLI_X.Y.Z_setup.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest) and run it.
+Open PowerShell and run:
 
-The installer will:
-- Place `LlamaTalkCLI.exe` in `C:\Program Files\LlamaTalk CLI\`
-- Add the install folder to the **system PATH** (available to all users)
-- Write a `llama.cmd` shorthand so `llama` works in CMD and PowerShell immediately
-- Register the app in **Add/Remove Programs**
+```powershell
+irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-CLI/master/install.ps1 | iex
+```
+
+This will automatically:
+- Download the latest release from GitHub
+- Place `LlamaTalkCLI.exe` in `%USERPROFILE%\LlamaTalkCLI\`
+- Write a `llama.cmd` shorthand
+- Add the folder to your **user PATH**
 
 Open a new terminal window after install, then:
 
@@ -26,9 +30,21 @@ llama --help                 Show all options
 
 ---
 
-## Option B — Direct EXE (No Install)
+## Option B — Windows Installer
 
-Download `LlamaTalkCLI.exe` and place it anywhere.
+Download `LlamaTalk CLI_X.Y.Z_setup.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest) and run it.
+
+The installer will:
+- Place `LlamaTalkCLI.exe` in `C:\Program Files\LlamaTalk CLI\`
+- Add the install folder to the **system PATH** (available to all users)
+- Write a `llama.cmd` shorthand so `llama` works in CMD and PowerShell immediately
+- Register the app in **Add/Remove Programs**
+
+---
+
+## Option C — Direct EXE (No Install)
+
+Download `LlamaTalkCLI.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest) and place it anywhere.
 
 - On first run, `llama.cmd` is automatically written next to the EXE — `llama` works in CMD immediately with no setup
 - No admin rights required
