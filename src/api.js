@@ -192,12 +192,12 @@ export async function callGoogle(messages, model, systemText, apiKey, temperatur
     body.systemInstruction = { parts: [{ text: systemText }] };
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetchWithTimeout(
     url,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify(body),
     },
     60_000,
@@ -489,12 +489,12 @@ async function streamGoogle(messages, model, systemText, apiKey, temperature, on
   const reqBody = { contents, generationConfig: { temperature } };
   if (systemText) reqBody.systemInstruction = { parts: [{ text: systemText }] };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`;
   const res = await streamRequest(
     url,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify(reqBody),
     },
     signal
