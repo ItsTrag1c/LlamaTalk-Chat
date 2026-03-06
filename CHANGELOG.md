@@ -1,6 +1,13 @@
 # Changelog — LlamaTalkCLI
 
-Last updated: 2026-03-04 (v0.9.10)
+Last updated: 2026-03-06 (v0.9.11)
+
+---
+
+## v0.9.11 — 2026-03-06
+
+### Security
+- **Google API key moved to request header** — The Google Gemini API key is no longer passed as a URL query parameter (`?key=`). It is now sent via the `x-goog-api-key` HTTP header in both streaming and non-streaming requests, preventing the key from appearing in server logs, browser history, or network proxy logs.
 
 ---
 
@@ -406,5 +413,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-04 (v0.9.0)
+Last updated: 2026-03-06 (v0.9.11)
 
