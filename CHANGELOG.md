@@ -1,7 +1,17 @@
 # LlamaTalk Desktop — Changelog
 
 A running history of all features, fixes, and improvements made to LlamaTalk Desktop.
-Last updated: 2026-03-04
+Last updated: 2026-03-05
+
+---
+
+## v0.14.0 — 2026-03-05
+
+### New Features
+- **macOS support** — LlamaTalk Desktop now runs on macOS 12.0+ (Monterey and later). Supports both Apple Silicon (M1+) and Intel Macs. Includes all features from the Windows version except the Llama Assistant floating window (Windows only).
+
+### Bug Fixes
+- **Keychain integration** — Credentials now stored in macOS Keychain on Apple Silicon/Intel builds instead of Windows Credential Manager.
 
 ---
 

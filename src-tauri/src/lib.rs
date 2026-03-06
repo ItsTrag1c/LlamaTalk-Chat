@@ -132,10 +132,21 @@ fn open_bundled_doc(app: tauri::AppHandle, filename: String) -> Result<(), Strin
     if !canonical_path.starts_with(&canonical_base) {
         return Err("Path traversal not allowed.".to_string());
     }
-    std::process::Command::new("cmd")
-        .args(["/c", "start", "", canonical_path.to_str().unwrap_or_default()])
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/c", "start", "", canonical_path.to_str().unwrap_or_default()])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(canonical_path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -265,14 +276,18 @@ fn check_for_update(current_version: String) -> Result<Option<String>, String> {
     let mut best: Option<([u32; 3], String, String)> = None;
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().to_string();
-        if let Some(rest) = name.strip_prefix("LlamaTalk Desktop_") {
-            if let Some(ver_str) = rest.strip_suffix("_x64-setup.exe") {
-                if let Some(ver) = parse_semver(ver_str) {
-                    if ver > current {
-                        let path = entry.path().to_string_lossy().to_string();
-                        if best.is_none() || ver > best.as_ref().unwrap().0 {
-                            best = Some((ver, ver_str.to_string(), path));
-                        }
+        
+        #[cfg(target_os = "windows")]
+        let check = name.strip_prefix("LlamaTalk Desktop_").and_then(|rest| rest.strip_suffix("_x64-setup.exe"));
+        #[cfg(target_os = "macos")]
+        let check = name.strip_prefix("LlamaTalk_Desktop_").and_then(|rest| rest.strip_suffix("_aarch64.dmg"));
+        
+        if let Some(ver_str) = check {
+            if let Some(ver) = parse_semver(ver_str) {
+                if ver > current {
+                    let path = entry.path().to_string_lossy().to_string();
+                    if best.is_none() || ver > best.as_ref().unwrap().0 {
+                        best = Some((ver, ver_str.to_string(), path));
                     }
                 }
             }
@@ -309,11 +324,20 @@ async fn check_for_update_remote(current_version: String) -> Option<String> {
     let current = parse_semver(&current_version)?;
     if found <= current { return None; }
     let assets = json["assets"].as_array()?;
+    
+    #[cfg(target_os = "windows")]
     let installer = assets.iter().find(|a| {
         a["name"].as_str()
             .map(|n| (n.starts_with("LlamaTalk Desktop_") || n.starts_with("LlamaTalk.Desktop_")) && n.ends_with("_x64-setup.exe"))
             .unwrap_or(false)
     })?;
+    #[cfg(target_os = "macos")]
+    let installer = assets.iter().find(|a| {
+        a["name"].as_str()
+            .map(|n| n.starts_with("LlamaTalk_Desktop_") && (n.ends_with("_aarch64.dmg") || n.ends_with("_x64.dmg")))
+            .unwrap_or(false)
+    })?;
+    
     let installer_url = installer["browser_download_url"].as_str()?;
     let checksum_url = assets.iter()
         .find(|a| a["name"].as_str() == Some("checksums.txt"))
@@ -328,7 +352,12 @@ async fn download_and_install(app: tauri::AppHandle, url: String, version: Strin
         .timeout(std::time::Duration::from_secs(300))
         .build()
         .map_err(|e| e.to_string())?;
+    
+    #[cfg(target_os = "windows")]
     let filename = format!("LlamaTalk Desktop_{}_x64-setup.exe", version);
+    #[cfg(target_os = "macos")]
+    let filename = format!("LlamaTalk_Desktop_{}_aarch64.dmg", version);
+    
     let dest = std::env::temp_dir().join(&filename);
 
     let res = client
@@ -369,24 +398,44 @@ async fn download_and_install(app: tauri::AppHandle, url: String, version: Strin
                 }
             }
         }
-        // If checksum fetch fails, proceed anyway — TLS already secures the channel
     }
 
     std::fs::write(&dest, &bytes).map_err(|e| e.to_string())?;
-    std::process::Command::new("cmd")
-        .args(["/c", "start", "", dest.to_str().unwrap_or_default()])
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/c", "start", "", dest.to_str().unwrap_or_default()])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(dest)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
     flush_and_exit(&app);
     Ok(())
 }
 
 #[tauri::command]
 fn launch_installer(app: tauri::AppHandle, path: String) -> Result<(), String> {
-    std::process::Command::new("cmd")
-        .args(["/c", "start", "", &path])
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/c", "start", "", &path])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
     flush_and_exit(&app);
     Ok(())
 }
@@ -858,6 +907,7 @@ pub fn run() {
             }
 
             // Create assistant window hidden at startup
+            #[cfg(target_os = "windows")]
             tauri::WebviewWindowBuilder::new(
                 app,
                 "llama-assistant",
@@ -867,6 +917,21 @@ pub fn run() {
             .inner_size(360.0, 280.0)
             .decorations(false)
             .transparent(true)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .visible(false)
+            .build()
+            .map_err(|e| e.to_string())?;
+            
+            #[cfg(target_os = "macos")]
+            tauri::WebviewWindowBuilder::new(
+                app,
+                "llama-assistant",
+                tauri::WebviewUrl::App("/".into()),
+            )
+            .title("Llama Assistant")
+            .inner_size(360.0, 280.0)
+            .decorations(false)
             .always_on_top(true)
             .skip_taskbar(true)
             .visible(false)

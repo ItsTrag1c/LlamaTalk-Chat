@@ -1,14 +1,23 @@
 # LlamaTalk Desktop
 
-> A private, local-first AI chat app for Windows.
+> A private, local-first AI chat app for macOS and Windows.
 
-LlamaTalk Desktop is a Tauri-based Windows desktop app for chatting with [Ollama](https://ollama.com/) models and cloud AI providers — Anthropic Claude, Google Gemini, and OpenAI GPT. Your conversations and settings stay on your machine.
+LlamaTalk Desktop is a Tauri-based desktop app for chatting with [Ollama](https://ollama.com/) models and cloud AI providers — Anthropic Claude, Google Gemini, and OpenAI GPT. Your conversations and settings stay on your machine.
 
 ---
 
 ## Download
 
 **[→ Latest Release](https://github.com/ItsTrag1c/LlamaTalk-Desktop/releases/latest)**
+
+### macOS
+
+| File | Description |
+|------|-------------|
+| `LlamaTalk Desktop_x.y.z_aarch64.dmg` | Apple Silicon installer (recommended) |
+| `LlamaTalk Desktop_x.y.z_x64.dmg` | Intel installer |
+
+### Windows
 
 | File | Description |
 |------|-------------|
@@ -24,9 +33,9 @@ LlamaTalk Desktop is a Tauri-based Windows desktop app for chatting with [Ollama
 - **Cloud models** — Anthropic Claude, Google Gemini, OpenAI GPT (API key required)
 - **True streaming** — responses appear token-by-token in real time from all providers
 - **Token counter** — live TK/S display during generation with actual API-reported token counts
-- **PIN login** — optional, PBKDF2-hashed with security questions and Forgot PIN flow; hashes stored in Windows Credential Manager
+- **PIN login** — optional, PBKDF2-hashed with security questions and Forgot PIN flow; credentials stored securely in macOS Keychain / Windows Credential Manager
 - **Encrypted conversations** — AES-256-GCM encryption at rest when a PIN is set
-- **Llama Assistant** — floating transparent desktop companion, always on top, draggable
+- **Llama Assistant** — floating transparent desktop companion, always on top, draggable (Windows)
 - **Per-model system prompts** — set a different base prompt for each model or provider
 - **Conversation history** — full sidebar with rename, export to `.txt`, and delete
 - **Automatic updates** — orange dot notification + one-click download from GitHub
@@ -38,6 +47,16 @@ LlamaTalk Desktop is a Tauri-based Windows desktop app for chatting with [Ollama
 ---
 
 ## Install
+
+### macOS
+
+1. Download the latest DMG from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Desktop/releases/latest)
+2. Open the DMG and drag **LlamaTalk Desktop** to Applications
+3. Launch from Applications or Spotlight
+
+**Requirements:** macOS 12.0 or later (Monterey or later). Apple Silicon (M1+) or Intel.
+
+### Windows
 
 1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Desktop/releases/latest)
 2. Run the installer — a UAC prompt will appear (installs to `C:\Program Files\LlamaTalk Desktop\`)
@@ -55,7 +74,7 @@ When a newer version is available, a small orange dot (●) appears on the **Set
 
 ## Privacy
 
-All data is stored locally on your device. Sensitive credentials (PIN hash, security question hashes) are stored in the Windows Credential Manager; all other settings live in `localStorage`. Nothing is collected, tracked, or synced to any server. Cloud API keys are stored only on your device and are never exported or transmitted except as part of direct API calls to your chosen provider.
+All data is stored locally on your device. Sensitive credentials (PIN hash, security question hashes) are stored in the macOS Keychain / Windows Credential Manager; all other settings live in `localStorage`. Nothing is collected, tracked, or synced to any server. Cloud API keys are stored only on your device and are never exported or transmitted except as part of direct API calls to your chosen provider.
 
 See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
 
