@@ -46,9 +46,54 @@ fn validate_ollama_url(url_str: &str) -> Result<(), String> {
         s => return Err(format!("Only http and https URLs are allowed, got: {}", s)),
     }
     if let Some(host) = parsed.host_str() {
-        // Reject link-local addresses (used by cloud metadata endpoints, e.g. 169.254.169.254)
+        // Reject link-local addresses (cloud metadata endpoints, e.g. 169.254.169.254)
         if host.starts_with("169.254.") {
             return Err("Link-local IP addresses are not allowed.".to_string());
+        }
+        // Reject 0.0.0.0 (binds to all interfaces)
+        if host == "0.0.0.0" {
+            return Err("0.0.0.0 is not allowed.".to_string());
+        }
+        // Reject IPv6 loopback and unspecified
+        if host == "[::1]" || host == "[::]" {
+            return Err("IPv6 loopback/unspecified addresses are not allowed.".to_string());
+        }
+    }
+    Ok(())
+}
+
+const ALLOWED_CLOUD_DOMAINS: &[&str] = &[
+    "api.anthropic.com",
+    "generativelanguage.googleapis.com",
+    "api.openai.com",
+];
+
+fn validate_cloud_url(url_str: &str) -> Result<(), String> {
+    let parsed = url::Url::parse(url_str)
+        .map_err(|_| format!("Invalid URL: {}", url_str))?;
+    if parsed.scheme() != "https" {
+        return Err("Cloud API calls must use HTTPS.".to_string());
+    }
+    if let Some(host) = parsed.host_str() {
+        if !ALLOWED_CLOUD_DOMAINS.iter().any(|d| host == *d) {
+            return Err(format!("URL domain '{}' is not in the allowed cloud provider list.", host));
+        }
+    } else {
+        return Err("URL has no host.".to_string());
+    }
+    Ok(())
+}
+
+fn validate_github_release_url(url_str: &str) -> Result<(), String> {
+    let parsed = url::Url::parse(url_str)
+        .map_err(|_| format!("Invalid URL: {}", url_str))?;
+    if parsed.scheme() != "https" {
+        return Err("Download URL must use HTTPS.".to_string());
+    }
+    if let Some(host) = parsed.host_str() {
+        // Allow github.com and objects.githubusercontent.com (where GitHub redirects downloads)
+        if host != "github.com" && host != "objects.githubusercontent.com" {
+            return Err(format!("Download URL host '{}' is not GitHub.", host));
         }
     }
     Ok(())
@@ -95,8 +140,10 @@ async fn external_api_post(
     body: String,
     timeout_secs: Option<u64>,
 ) -> Result<String, String> {
+    validate_cloud_url(&url)?;
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(timeout_secs.unwrap_or(120)))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|e| e.to_string())?;
     let pairs: Vec<(String, String)> = serde_json::from_str(&headers)
@@ -152,8 +199,24 @@ fn open_bundled_doc(app: tauri::AppHandle, filename: String) -> Result<(), Strin
 
 const CRED_SERVICE: &str = "LlamaTalk Desktop";
 
+const ALLOWED_CRED_KEYS: &[&str] = &[
+    "pinHash",
+    "sqHash1", "sqHash2", "sqHash3",
+    "convEncKey",
+    "apiKey_anthropic", "apiKey_google", "apiKey_openai",
+];
+
+fn validate_cred_key(key: &str) -> Result<(), String> {
+    if ALLOWED_CRED_KEYS.contains(&key) {
+        Ok(())
+    } else {
+        Err(format!("Credential key '{}' is not allowed.", key))
+    }
+}
+
 #[tauri::command]
 fn cred_store(key: String, value: String) -> Result<(), String> {
+    validate_cred_key(&key)?;
     keyring::Entry::new(CRED_SERVICE, &key)
         .map_err(|e| e.to_string())?
         .set_password(&value)
@@ -162,6 +225,7 @@ fn cred_store(key: String, value: String) -> Result<(), String> {
 
 #[tauri::command]
 fn cred_load(key: String) -> Result<Option<String>, String> {
+    validate_cred_key(&key)?;
     let entry = keyring::Entry::new(CRED_SERVICE, &key)
         .map_err(|e| e.to_string())?;
     match entry.get_password() {
@@ -173,6 +237,7 @@ fn cred_load(key: String) -> Result<Option<String>, String> {
 
 #[tauri::command]
 fn cred_delete(key: String) -> Result<(), String> {
+    validate_cred_key(&key)?;
     let entry = keyring::Entry::new(CRED_SERVICE, &key)
         .map_err(|e| e.to_string())?;
     match entry.delete_credential() {
@@ -348,6 +413,10 @@ async fn check_for_update_remote(current_version: String) -> Option<String> {
 
 #[tauri::command]
 async fn download_and_install(_app: tauri::AppHandle, url: String, version: String, checksum_url: String) -> Result<(), String> {
+    validate_github_release_url(&url)?;
+    if !checksum_url.is_empty() {
+        validate_github_release_url(&checksum_url)?;
+    }
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(300))
         .build()
@@ -371,31 +440,32 @@ async fn download_and_install(_app: tauri::AppHandle, url: String, version: Stri
     }
     let bytes = res.bytes().await.map_err(|e| e.to_string())?;
 
-    // Verify checksum when available
+    // Verify checksum — fail-closed: reject download if checksum cannot be verified
     if !checksum_url.is_empty() {
-        if let Ok(cs_res) = client
+        let cs_res = client
             .get(&checksum_url)
             .header("User-Agent", "LlamaTalk Desktop")
             .send()
             .await
-        {
-            if cs_res.status().is_success() {
-                if let Ok(cs_text) = cs_res.text().await {
-                    let actual_hash = sha256_hex(&bytes);
-                    let expected = cs_text
-                        .lines()
-                        .find(|line| line.contains(&filename))
-                        .and_then(|line| line.split_whitespace().next())
-                        .map(|s| s.to_string());
-                    if let Some(expected_hash) = expected {
-                        if actual_hash != expected_hash {
-                            return Err(
-                                "Checksum mismatch — the download may be corrupted. Please try again."
-                                    .to_string(),
-                            );
-                        }
-                    }
-                }
+            .map_err(|_| "Could not fetch checksum file. Update aborted for safety.".to_string())?;
+        if !cs_res.status().is_success() {
+            return Err("Checksum file download failed. Update aborted for safety.".to_string());
+        }
+        let cs_text = cs_res.text().await
+            .map_err(|_| "Could not read checksum file. Update aborted for safety.".to_string())?;
+        let actual_hash = sha256_hex(&bytes);
+        let expected = cs_text
+            .lines()
+            .find(|line| line.contains(&filename))
+            .and_then(|line| line.split_whitespace().next())
+            .map(|s| s.to_string());
+        match expected {
+            Some(expected_hash) if actual_hash == expected_hash => { /* checksum verified */ }
+            Some(_) => {
+                return Err("Checksum mismatch — the download may be corrupted. Please try again.".to_string());
+            }
+            None => {
+                return Err("No matching checksum found for this installer. Update aborted for safety.".to_string());
             }
         }
     }
@@ -408,7 +478,7 @@ async fn download_and_install(_app: tauri::AppHandle, url: String, version: Stri
             .args(["/c", "start", "", dest.to_str().unwrap_or_default()])
             .spawn()
             .map_err(|e| e.to_string())?;
-        flush_and_exit(&app);
+        flush_and_exit(&_app);
     }
     #[cfg(target_os = "macos")]
     {
@@ -423,17 +493,43 @@ async fn download_and_install(_app: tauri::AppHandle, url: String, version: Stri
 
 #[tauri::command]
 fn launch_installer(_app: tauri::AppHandle, path: String) -> Result<(), String> {
+    // Validate the path points to a legitimate installer file
+    let file_path = std::path::Path::new(&path);
+    let file_name = file_path.file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "Invalid installer path.".to_string())?;
+
+    #[cfg(target_os = "windows")]
+    let valid = file_name.starts_with("LlamaTalk") && file_name.ends_with(".exe");
+    #[cfg(target_os = "macos")]
+    let valid = file_name.starts_with("LlamaTalk") && file_name.ends_with(".dmg");
+
+    if !valid {
+        return Err("Path does not point to a valid LlamaTalk installer.".to_string());
+    }
+
+    // Ensure the file is in the temp dir or the app's install dir
+    let canonical = file_path.canonicalize().map_err(|e| e.to_string())?;
+    let temp_dir = std::env::temp_dir().canonicalize().unwrap_or_default();
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+        .and_then(|d| d.canonicalize().ok())
+        .unwrap_or_default();
+    if !canonical.starts_with(&temp_dir) && !canonical.starts_with(&exe_dir) {
+        return Err("Installer must be in the temp directory or install directory.".to_string());
+    }
+
     #[cfg(target_os = "windows")]
     {
         std::process::Command::new("cmd")
             .args(["/c", "start", "", &path])
             .spawn()
             .map_err(|e| e.to_string())?;
-        flush_and_exit(&app);
+        flush_and_exit(&_app);
     }
     #[cfg(target_os = "macos")]
     {
-        // On macOS, open the DMG but don't exit the app
         std::process::Command::new("open")
             .arg(&path)
             .spawn()
@@ -524,9 +620,11 @@ async fn stream_chat(
     provider_type: String,
     stream_id: String,
 ) -> Result<(), String> {
-    // Validate URL for local providers
+    // Validate URL based on provider type
     if provider_type == "ollama" || provider_type == "openai-compatible" {
         validate_ollama_url(&url)?;
+    } else {
+        validate_cloud_url(&url)?;
     }
 
     let cancel_flag = Arc::new(AtomicBool::new(false));

@@ -6,7 +6,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { openPath } from "@tauri-apps/plugin-opener";
 
-const APP_VERSION = "0.14.1";
+const APP_VERSION = "0.15.0";
 let IS_MACOS = false;
 let IS_WINDOWS = false;
 const DEFAULT_URL = "http://localhost:11434";
@@ -398,16 +398,8 @@ export default function App() {
   const [modelName, setModelName] = useState(() => localStorage.getItem("modelName") || "");
   const [draftModelName, setDraftModelName] = useState(() => localStorage.getItem("modelName") || "");
   const [hiddenModels, setHiddenModels] = useState(() => JSON.parse(localStorage.getItem("hiddenModels") || "[]"));
-  const [apiKeys, setApiKeys] = useState(() => ({
-    anthropic: localStorage.getItem("apiKey_anthropic") || "",
-    google:    localStorage.getItem("apiKey_google")    || "",
-    openai:    localStorage.getItem("apiKey_openai")    || "",
-  }));
-  const [draftApiKeys, setDraftApiKeys] = useState(() => ({
-    anthropic: localStorage.getItem("apiKey_anthropic") || "",
-    google:    localStorage.getItem("apiKey_google")    || "",
-    openai:    localStorage.getItem("apiKey_openai")    || "",
-  }));
+  const [apiKeys, setApiKeys] = useState({ anthropic: "", google: "", openai: "" });
+  const [draftApiKeys, setDraftApiKeys] = useState({ anthropic: "", google: "", openai: "" });
   const [enabledProviders, setEnabledProviders] = useState(() =>
     JSON.parse(localStorage.getItem("enabledProviders") || "{}"));
   const [draftEnabledProviders, setDraftEnabledProviders] = useState(() =>
@@ -487,6 +479,10 @@ export default function App() {
   const [storedSqHash1, setStoredSqHash1] = useState(null);
   const [storedSqHash2, setStoredSqHash2] = useState(null);
   const [storedSqHash3, setStoredSqHash3] = useState(null);
+
+  // PIN attempt rate limiting
+  const pinAttemptsRef = useRef(0);
+  const pinLockoutUntilRef = useRef(0);
 
   // Onboarding: Ollama URL setup after profile creation
   const [showOllamaSetup, setShowOllamaSetup] = useState(false);
@@ -714,6 +710,26 @@ export default function App() {
           }
           setShowProfileSetup(false);
         }
+        // Load API keys from credential store, migrate from localStorage
+        const [akAnth, akGoog, akOai] = await Promise.all([
+          invoke("cred_load", { key: "apiKey_anthropic" }),
+          invoke("cred_load", { key: "apiKey_google" }),
+          invoke("cred_load", { key: "apiKey_openai" }),
+        ]);
+        const lsAnth = localStorage.getItem("apiKey_anthropic");
+        const lsGoog = localStorage.getItem("apiKey_google");
+        const lsOai  = localStorage.getItem("apiKey_openai");
+        const loadedKeys = {
+          anthropic: akAnth || lsAnth || "",
+          google:    akGoog || lsGoog || "",
+          openai:    akOai  || lsOai  || "",
+        };
+        // Migrate from localStorage → credential store
+        if (!akAnth && lsAnth) { await invoke("cred_store", { key: "apiKey_anthropic", value: lsAnth }); localStorage.removeItem("apiKey_anthropic"); }
+        if (!akGoog && lsGoog) { await invoke("cred_store", { key: "apiKey_google",    value: lsGoog }); localStorage.removeItem("apiKey_google"); }
+        if (!akOai  && lsOai)  { await invoke("cred_store", { key: "apiKey_openai",    value: lsOai  }); localStorage.removeItem("apiKey_openai"); }
+        setApiKeys(loadedKeys);
+        setDraftApiKeys(loadedKeys);
       } catch (e) {
         console.error("Credential store load failed:", e);
       }
@@ -826,10 +842,10 @@ export default function App() {
     localStorage.setItem("chatTextSize", draftChatTextSize);
     localStorage.setItem("closeMinimiesToTray", draftCloseMinimiesToTray);
     localStorage.setItem("pinFrequency", draftPinFrequency);
-    // Save API provider keys and enabled state
-    localStorage.setItem("apiKey_anthropic", draftApiKeys.anthropic);
-    localStorage.setItem("apiKey_google",    draftApiKeys.google);
-    localStorage.setItem("apiKey_openai",    draftApiKeys.openai);
+    // Save API provider keys to credential store (not localStorage)
+    invoke("cred_store", { key: "apiKey_anthropic", value: draftApiKeys.anthropic }).catch(() => {});
+    invoke("cred_store", { key: "apiKey_google",    value: draftApiKeys.google    }).catch(() => {});
+    invoke("cred_store", { key: "apiKey_openai",    value: draftApiKeys.openai    }).catch(() => {});
     localStorage.setItem("enabledProviders", JSON.stringify(draftEnabledProviders));
     setApiKeys(draftApiKeys);
     setEnabledProviders(draftEnabledProviders);
@@ -1305,9 +1321,18 @@ export default function App() {
   async function doUnlock() {
     setLockError("");
     if (!lockPin) { setLockError("Please enter your PIN."); return; }
+    // Rate limiting: progressive lockout after failed attempts
+    const now = Date.now();
+    if (pinLockoutUntilRef.current > now) {
+      const secsLeft = Math.ceil((pinLockoutUntilRef.current - now) / 1000);
+      setLockError(`Too many attempts. Try again in ${secsLeft}s.`);
+      setLockPin("");
+      return;
+    }
     const stored = storedPinHash;
     const { verified, needsMigration, newHash } = await verifyPin(lockPin, stored);
     if (verified) {
+      pinAttemptsRef.current = 0;
       if (needsMigration) {
         await invoke("cred_store", { key: "pinHash", value: newHash });
         setStoredPinHash(newHash);
@@ -1316,7 +1341,17 @@ export default function App() {
       setIsLocked(false);
       setLockPin("");
     } else {
-      setLockError("Incorrect PIN.");
+      pinAttemptsRef.current += 1;
+      const attempts = pinAttemptsRef.current;
+      if (attempts >= 5) {
+        // Lockout: 5s after 5, 15s after 6, 30s after 7, 60s after 8+
+        const delays = [5, 15, 30, 60];
+        const delaySec = delays[Math.min(attempts - 5, delays.length - 1)];
+        pinLockoutUntilRef.current = Date.now() + delaySec * 1000;
+        setLockError(`Incorrect PIN. Locked out for ${delaySec}s.`);
+      } else {
+        setLockError("Incorrect PIN.");
+      }
       setLockPin("");
     }
   }
@@ -1489,7 +1524,8 @@ export default function App() {
     if (!window.confirm("Are you absolutely sure? The profile and all credentials will be erased.")) return;
     try {
       const docsDir = await invoke("get_documents_dir");
-      const logPath = docsDir + "\\LlamaTalk-deletion-log.txt";
+      const sep = IS_WINDOWS ? "\\" : "/";
+      const logPath = docsDir + sep + "LlamaTalk-deletion-log.txt";
       const entry = `[${new Date().toISOString()}] Profile "${name}" deleted. ${convCount} conversation${convCount !== 1 ? "s" : ""} retained.\n`;
       let existing = "";
       try { existing = await invoke("read_file_text", { path: logPath }); } catch { existing = ""; }
@@ -1501,6 +1537,9 @@ export default function App() {
       invoke("cred_delete", { key: "sqHash2" }),
       invoke("cred_delete", { key: "sqHash3" }),
       invoke("cred_delete", { key: "convEncKey" }),
+      invoke("cred_delete", { key: "apiKey_anthropic" }),
+      invoke("cred_delete", { key: "apiKey_google" }),
+      invoke("cred_delete", { key: "apiKey_openai" }),
     ]);
     setConvCryptoKey(null);
     localStorage.setItem("conversations", JSON.stringify(conversations)); // plaintext
@@ -1576,8 +1615,8 @@ export default function App() {
       contents,
       generationConfig: { temperature },
     });
-    const headers = JSON.stringify([["content-type", "application/json"]]);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const headers = JSON.stringify([["content-type", "application/json"], ["x-goog-api-key", apiKey]]);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     const text = await invoke("external_api_post", { url, headers, body, timeoutSecs: 120 });
     const data = JSON.parse(text);
     return data.candidates[0].content.parts[0].text;
@@ -1701,10 +1740,10 @@ export default function App() {
         });
       } else if (provider === "google") {
         providerType = "google";
-        streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKeys.google}`;
+        streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse`;
         const contents = apiMessages.filter((m) => m.role !== "system")
           .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
-        streamHeaders = JSON.stringify([["content-type", "application/json"]]);
+        streamHeaders = JSON.stringify([["content-type", "application/json"], ["x-goog-api-key", apiKeys.google]]);
         streamBody = JSON.stringify({
           contents, generationConfig: { temperature },
           ...(systemPrompt.trim() ? { systemInstruction: { parts: [{ text: systemPrompt.trim() }] } } : {}),

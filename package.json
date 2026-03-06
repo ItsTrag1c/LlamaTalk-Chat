@@ -1,7 +1,7 @@
 {
   "name": "llamachatv1",
   "private": true,
-  "version": "0.14.1",
+  "version": "0.15.0",
   "author": "ItsTrag1c",
   "type": "module",
   "scripts": {
@@ -24,7 +24,7 @@
     "@tauri-apps/cli": "^2",
     "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.4.27",
-    "pdfkit": "^0.17.2",
+
     "postcss": "^8.5.6",
     "tailwindcss": "^4.2.1",
     "vite": "^7.0.4"
