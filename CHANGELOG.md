@@ -1,6 +1,6 @@
 # Changelog — LlamaTalkCLI
 
-Last updated: 2026-03-06 (v0.9.12)
+Last updated: 2026-03-07 (v0.9.12)
 
 ---
 
@@ -420,5 +420,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-06 (v0.9.11)
+Last updated: 2026-03-07 (v0.9.12)
 

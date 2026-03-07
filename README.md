@@ -129,4 +129,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-*Created by [ItsTrag1c](https://github.com/ItsTrag1c) — [MIT License](LICENSE)*
+*Part of the [LlamaTalk Suite](https://llamatalksuite.dev) — Created by [ItsTrag1c](https://github.com/ItsTrag1c) — [MIT License](LICENSE)*
