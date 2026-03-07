@@ -7,6 +7,11 @@ Last updated: 2026-03-07
 
 ## v0.16.0 — 2026-03-07
 
+### Security (post-release patch — 2026-03-07)
+- **HTTP redirect blocking on streaming** — `stream_chat_inner` now blocks all HTTP redirects, preventing redirect-based SSRF attacks on chat streaming requests.
+- **Download redirect restriction** — `download_and_install` now uses a custom redirect policy that only follows redirects to `github.com` and `objects.githubusercontent.com`, preventing redirect-based attacks during update downloads.
+- **Cross-platform deletion log path** — removed hardcoded Windows path separator in profile deletion log path; now uses universal `/` separator for macOS compatibility.
+
 ### New Provider
 - **OpenCode support** — Added OpenCode as a cloud provider in Settings. Connects to OpenCode Zen API using OpenAI-compatible streaming via the Tauri backend. Provides access to 12 models including GPT-5.x, Claude 4.6, Gemini 3.x, MiniMax, Kimi, and Big Pickle — all through a single API key. API key stored securely in Windows Credential Manager / macOS Keychain. OpenCode domain added to cloud URL allowlist and credential store key allowlist.
 
