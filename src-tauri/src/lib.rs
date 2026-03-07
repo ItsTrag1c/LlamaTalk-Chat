@@ -420,9 +420,16 @@ async fn download_and_install(_app: tauri::AppHandle, url: String, version: Stri
     }
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(300))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            // Only follow redirects to GitHub's allowed download hosts
+            match attempt.url().host_str() {
+                Some("github.com") | Some("objects.githubusercontent.com") => attempt.follow(),
+                _ => attempt.stop(),
+            }
+        }))
         .build()
         .map_err(|e| e.to_string())?;
-    
+
     #[cfg(target_os = "windows")]
     let filename = format!("LlamaTalk Desktop_{}_x64-setup.exe", version);
     #[cfg(target_os = "macos")]
@@ -673,6 +680,7 @@ async fn stream_chat_inner(
 ) -> Result<Option<ChatUsagePayload>, String> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(300))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|e| e.to_string())?;
 

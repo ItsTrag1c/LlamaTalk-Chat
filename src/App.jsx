@@ -6,7 +6,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { openPath } from "@tauri-apps/plugin-opener";
 
-const APP_VERSION = "0.16.0";
+const APP_VERSION = "0.15.0";
 let IS_MACOS = false;
 let IS_WINDOWS = false;
 const DEFAULT_URL = "http://localhost:11434";
@@ -1530,8 +1530,7 @@ export default function App() {
     if (!window.confirm("Are you absolutely sure? The profile and all credentials will be erased.")) return;
     try {
       const docsDir = await invoke("get_documents_dir");
-      const sep = IS_WINDOWS ? "\\" : "/";
-      const logPath = docsDir + sep + "LlamaTalk-deletion-log.txt";
+      const logPath = docsDir.replace(/[/\\]$/, "") + "/" + "LlamaTalk-deletion-log.txt";
       const entry = `[${new Date().toISOString()}] Profile "${name}" deleted. ${convCount} conversation${convCount !== 1 ? "s" : ""} retained.\n`;
       let existing = "";
       try { existing = await invoke("read_file_text", { path: logPath }); } catch { existing = ""; }
