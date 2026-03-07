@@ -30,7 +30,7 @@ LlamaTalk Desktop is a Tauri-based desktop app for chatting with [Ollama](https:
 
 - **Local models** — connects to any [Ollama](https://ollama.com/) server on your machine or network
 - **OpenAI-compatible servers** — llama.cpp, LM Studio, vLLM, and other OpenAI-compatible backends auto-detected
-- **Cloud models** — Anthropic Claude, Google Gemini, OpenAI GPT (API key required)
+- **Cloud models** — Anthropic Claude, Google Gemini, OpenAI GPT, OpenCode (API key required)
 - **True streaming** — responses appear token-by-token in real time from all providers
 - **Token counter** — live TK/S display during generation with actual API-reported token counts
 - **PIN login** — optional, PBKDF2-hashed with security questions and Forgot PIN flow; credentials stored securely in macOS Keychain / Windows Credential Manager

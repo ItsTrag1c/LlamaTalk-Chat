@@ -1,14 +1,14 @@
 # LlamaTalk Desktop — Changelog
 
 A running history of all features, fixes, and improvements made to LlamaTalk Desktop.
-Last updated: 2026-03-07 (v0.16.0)
+Last updated: 2026-03-07
 
 ---
 
-## v0.16.0 — 2026-03-06
+## v0.16.0 — 2026-03-07
 
 ### New Provider
-- **OpenCode support** — added OpenCode as a cloud provider in Settings. Connects to OpenCode Zen API using OpenAI-compatible streaming via the Tauri backend. Provides access to 12 models including GPT-5.x, Claude 4.6, Gemini 3.x, MiniMax, Kimi, and Big Pickle — all through a single API key. API key stored securely in Windows Credential Manager. OpenCode domain added to cloud URL allowlist and credential store key allowlist.
+- **OpenCode support** — Added OpenCode as a cloud provider in Settings. Connects to OpenCode Zen API using OpenAI-compatible streaming via the Tauri backend. Provides access to 12 models including GPT-5.x, Claude 4.6, Gemini 3.x, MiniMax, Kimi, and Big Pickle — all through a single API key. API key stored securely in Windows Credential Manager / macOS Keychain. OpenCode domain added to cloud URL allowlist and credential store key allowlist.
 
 ---
 
