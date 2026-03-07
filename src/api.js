@@ -42,6 +42,7 @@ export const CLOUD_MODELS = {
   anthropic: ["claude-opus-4-5", "claude-sonnet-4-5", "claude-3-5-haiku-20241022"],
   google:    ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.5-flash"],
   openai:    ["gpt-4o", "gpt-4o-mini", "o1", "o3-mini"],
+  opencode:  ["claude-opus-4-6", "claude-sonnet-4-6", "gpt-5.4-pro", "gpt-5.4", "gpt-5.3-codex", "gpt-5.3-codex-spark", "gemini-3.1-pro", "gemini-3-pro", "gemini-3-flash", "minimax-m2.5", "kimi-k2.5", "big-pickle"],
 };
 
 export function getProvider(model, config) {
@@ -235,6 +236,29 @@ export async function callOpenAI(messages, model, apiKey, temperature = 0.7, sig
   return data.choices?.[0]?.message?.content ?? "";
 }
 
+export async function callOpenCode(messages, model, apiKey, temperature = 0.7, signal = null) {
+  const res = await fetchWithTimeout(
+    "https://opencode.ai/zen/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ model, messages, temperature }),
+    },
+    60_000,
+    signal
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OpenCode error ${res.status}: ${text}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
 export async function sendMessage(messages, config, systemPrompt, signal = null) {
   const model = config.selectedModel;
   const provider = getProvider(model, config);
@@ -264,6 +288,14 @@ export async function sendMessage(messages, config, systemPrompt, signal = null)
       ? [{ role: "system", content: systemPrompt }, ...messages]
       : messages;
     return await callOpenAI(msgs, model, config.apiKey_openai, temperature, signal);
+  }
+
+  if (provider === "opencode") {
+    if (!config.apiKey_opencode) throw new Error("OpenCode API key not set. Use /set api-key opencode <key>");
+    const msgs = systemPrompt
+      ? [{ role: "system", content: systemPrompt }, ...messages]
+      : messages;
+    return await callOpenCode(msgs, model, config.apiKey_opencode, temperature, signal);
   }
 
   throw new Error(`Unknown provider for model: ${model}`);
@@ -552,6 +584,40 @@ async function streamOpenAI(messages, model, apiKey, temperature, onToken, signa
   return usage;
 }
 
+async function streamOpenCode(messages, model, apiKey, temperature, onToken, signal) {
+  const res = await streamRequest(
+    "https://opencode.ai/zen/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ model, messages, temperature, stream: true, stream_options: { include_usage: true } }),
+    },
+    signal
+  );
+  let usage = null;
+  for await (const line of streamLines(res)) {
+    if (signal?.aborted) break;
+    if (!line.startsWith("data: ")) continue;
+    const data = line.slice(6);
+    if (data === "[DONE]") break;
+    try {
+      const obj = JSON.parse(data);
+      const token = obj.choices?.[0]?.delta?.content;
+      if (token) onToken(token);
+      if (obj.usage) {
+        usage = {
+          promptTokens: obj.usage.prompt_tokens || 0,
+          outputTokens: obj.usage.completion_tokens || 0,
+        };
+      }
+    } catch { /* skip */ }
+  }
+  return usage;
+}
+
 // ---------------------------------------------------------------------------
 // Streaming router — calls the right provider's stream function
 // ---------------------------------------------------------------------------
@@ -609,6 +675,15 @@ export async function streamMessage(messages, config, systemPrompt, onToken, sig
       : messages;
     const usage = await streamOpenAI(msgs, model, config.apiKey_openai, temperature, onToken, signal);
     return { provider: "openai", usage };
+  }
+
+  if (provider === "opencode") {
+    if (!config.apiKey_opencode) throw new Error("OpenCode API key not set. Use /set api-key opencode <key>");
+    const msgs = systemPrompt
+      ? [{ role: "system", content: systemPrompt }, ...messages]
+      : messages;
+    const usage = await streamOpenCode(msgs, model, config.apiKey_opencode, temperature, onToken, signal);
+    return { provider: "opencode", usage };
   }
 
   throw new Error(`Unknown provider for model: ${model}`);

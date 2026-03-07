@@ -1,6 +1,13 @@
 # Changelog — LlamaTalkCLI
 
-Last updated: 2026-03-06 (v0.9.11)
+Last updated: 2026-03-06 (v0.9.12)
+
+---
+
+## v0.9.12 — 2026-03-06
+
+### New Provider
+- **OpenCode support** — added OpenCode as a cloud provider. Connects to OpenCode Zen API using OpenAI-compatible streaming. Provides access to 12 models including GPT-5.x, Claude 4.6, Gemini 3.x, MiniMax, Kimi, and Big Pickle — all through a single API key. Configure via onboarding or `/set api-key opencode <key>`.
 
 ---
 

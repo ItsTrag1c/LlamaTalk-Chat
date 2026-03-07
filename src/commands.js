@@ -270,7 +270,7 @@ ${BOLD}Settings${RESET}
   ${ORANGE}/set add-server <url>${RESET}           Add an additional local server
   ${ORANGE}/set remove-server <url>${RESET}        Remove an additional server
   ${ORANGE}/set servers${RESET}                    List all configured servers
-  ${ORANGE}/set api-key <provider> <key>${RESET}  Set API key (anthropic/google/openai)
+  ${ORANGE}/set api-key <provider> <key>${RESET}  Set API key (anthropic/google/openai/opencode)
   ${ORANGE}/set provider enable|disable <p>${RESET} Toggle a cloud provider
   ${ORANGE}/set word-delay <ms>${RESET}           Set word-by-word delay (0–500ms)
   ${ORANGE}/set prompt [model]${RESET}            Edit system prompt for a model
@@ -383,6 +383,7 @@ ${BOLD}Cloud Providers${RESET}
   Anthropic:  ${ep.anthropic ? GREEN + "enabled" + RESET : DIM + "disabled" + RESET}  key: ${maskKey(config.apiKey_anthropic)}
   Google:     ${ep.google ? GREEN + "enabled" + RESET : DIM + "disabled" + RESET}  key: ${maskKey(config.apiKey_google)}
   OpenAI:     ${ep.openai ? GREEN + "enabled" + RESET : DIM + "disabled" + RESET}  key: ${maskKey(config.apiKey_openai)}
+  OpenCode:   ${ep.opencode ? GREEN + "enabled" + RESET : DIM + "disabled" + RESET}  key: ${maskKey(config.apiKey_opencode)}
 
 ${DIM}Config: ${getConfigPath()}${RESET}
 `);
@@ -474,8 +475,8 @@ ${DIM}Config: ${getConfigPath()}${RESET}
   if (cmd === "/set" && args[0] === "api-key" && args[1] && args[2]) {
     const provider = args[1].toLowerCase();
     const key = args[2];
-    if (!["anthropic", "google", "openai"].includes(provider)) {
-      console.log(RED + "  Unknown provider. Use: anthropic, google, openai" + RESET);
+    if (!["anthropic", "google", "openai", "opencode"].includes(provider)) {
+      console.log(RED + "  Unknown provider. Use: anthropic, google, openai, opencode" + RESET);
       return { handled: true };
     }
     config[`apiKey_${provider}`] = key;
@@ -493,8 +494,8 @@ ${DIM}Config: ${getConfigPath()}${RESET}
       console.log(RED + "  Use: /set provider enable|disable <provider>" + RESET);
       return { handled: true };
     }
-    if (!["anthropic", "google", "openai"].includes(provider)) {
-      console.log(RED + "  Unknown provider. Use: anthropic, google, openai" + RESET);
+    if (!["anthropic", "google", "openai", "opencode"].includes(provider)) {
+      console.log(RED + "  Unknown provider. Use: anthropic, google, openai, opencode" + RESET);
       return { handled: true };
     }
     config.enabledProviders[provider] = action === "enable";
@@ -580,6 +581,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
           config.apiKey_anthropic = decrypted.apiKey_anthropic;
           config.apiKey_google    = decrypted.apiKey_google;
           config.apiKey_openai    = decrypted.apiKey_openai;
+          config.apiKey_opencode  = decrypted.apiKey_opencode;
           saveHistory(loadHistory(encKey), null);
         }
         config.pinHash = null;
@@ -673,6 +675,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     delete exported.apiKey_anthropic;
     delete exported.apiKey_google;
     delete exported.apiKey_openai;
+    delete exported.apiKey_opencode;
     try {
       writeFileSync(dest, JSON.stringify(exported, null, 2), "utf8");
       console.log(GREEN + `  Config exported to: ${dest}` + RESET);
