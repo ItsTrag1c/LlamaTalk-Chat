@@ -3,7 +3,7 @@
 // Run with: node scripts/make-docs-pdf.js
 
 import PDFDocument from "pdfkit";
-import { createWriteStream, mkdirSync } from "fs";
+import { createWriteStream, mkdirSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -185,88 +185,16 @@ own API key, billed directly to you.
 *LlamaTalk — your conversations, your machine, your control.*
 `;
 
-// ---- Privacy Policy ----
-const PRIVACY = `# LlamaTalk — Privacy Policy
-
-*Updated 2026-03-03 | Covers LlamaTalk Desktop and LlamaTalkCLI*
-
----
-
-## Overview
-
-The LlamaTalk suite is built with a local-first philosophy. Neither LlamaTalk Desktop
-nor LlamaTalkCLI collects, transmits, or stores any of your data on remote servers.
-Everything runs on your computer.
-
-## What Data Is Stored and Where
-
-### LlamaTalk Desktop
-
-All data is stored on your device in local browser storage (localStorage):
-
-- Conversation history
-- Profile name and PIN hash (PBKDF2, 100,000 iterations — never stored as plaintext)
-- Security question answer hashes (SHA-256 — never as plaintext)
-- App settings: server URL, theme, text size, scroll speed, tray behaviour, etc.
-- Per-model system prompts
-- API provider on/off states and API keys
-
-### LlamaTalkCLI
-
-All data is stored on your device in your user AppData folder:
-
-- **%APPDATA%\\LlamaTalkCLI\\config.json** — profile name, PIN hash, settings,
-  per-model prompts, nicknames, and API provider on/off states
-- **%APPDATA%\\LlamaTalkCLI\\history.json** — conversation history
-
-API keys for cloud providers are stored in config.json. They are never transmitted
-anywhere except directly to the respective provider's API when you use one of their
-models. API keys are not included when you export your config via /export.
-
-## What Leaves Your Computer
-
-By default: nothing.
-
-Both apps connect only to your local Ollama server (default: http://localhost:11434).
-No data is sent to external servers by either app.
-
-If you enable a cloud AI provider, your messages and conversation context will be sent
-directly from your device to that provider's API when you use one of their models.
-This is opt-in and the destination is shown clearly in both apps before and during use.
-
-## Third-Party Cloud Providers
-
-Both apps support optional integration with:
-
-- **Anthropic (Claude)** — anthropic.com/privacy
-- **Google (Gemini)** — policies.google.com/privacy
-- **OpenAI** — openai.com/policies/privacy-policy
-
-When you use these integrations, your messages are sent directly to that provider's
-servers. LlamaTalk has no visibility into and no control over how these providers
-store, process, or use your data.
-
-We cannot guarantee what third-party providers do with your data. Their handling is
-governed entirely by their own terms of service and privacy policies. We strongly
-encourage you to review each provider's privacy policy before enabling their services.
-
-## No Telemetry or Analytics
-
-Neither app collects any telemetry, analytics, crash reports, or usage data of any kind.
-There are no third-party trackers or monitoring tools embedded in either application.
-No data is ever shared with or sold to any third party by LlamaTalk.
-
-## Updates to This Policy
-
-This privacy policy is updated alongside new releases to reflect the current state of
-all apps in the LlamaTalk suite. The date above indicates the last revision.
-
----
-
-*LlamaTalk is committed to keeping your conversations private.*
-
-*Your data belongs to you.*
-`;
+// ---- Privacy Policy (read from canonical External Documents source) ----
+const PRIVACY_PATH = "E:\\LlamaTalk Files\\External Documents\\LlamaTalk Privacy Policy.md";
+let PRIVACY;
+try {
+  PRIVACY = readFileSync(PRIVACY_PATH, "utf8");
+} catch {
+  console.error(`Privacy Policy not found at: ${PRIVACY_PATH}`);
+  console.error("Using fallback — generate the External Documents version first.");
+  PRIVACY = "# LlamaTalk — Privacy Policy\n\nPrivacy policy file not found.";
+}
 
 renderDoc(GOALS,    join(RESOURCES_DIR, "LlamaTalk Goals.pdf"));
 renderDoc(PRIVACY,  join(RESOURCES_DIR, "LlamaTalk Privacy Policy.pdf"));

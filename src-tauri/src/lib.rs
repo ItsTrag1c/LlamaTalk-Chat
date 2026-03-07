@@ -66,6 +66,7 @@ const ALLOWED_CLOUD_DOMAINS: &[&str] = &[
     "api.anthropic.com",
     "generativelanguage.googleapis.com",
     "api.openai.com",
+    "opencode.ai",
 ];
 
 fn validate_cloud_url(url_str: &str) -> Result<(), String> {
@@ -203,7 +204,7 @@ const ALLOWED_CRED_KEYS: &[&str] = &[
     "pinHash",
     "sqHash1", "sqHash2", "sqHash3",
     "convEncKey",
-    "apiKey_anthropic", "apiKey_google", "apiKey_openai",
+    "apiKey_anthropic", "apiKey_google", "apiKey_openai", "apiKey_opencode",
 ];
 
 fn validate_cred_key(key: &str) -> Result<(), String> {

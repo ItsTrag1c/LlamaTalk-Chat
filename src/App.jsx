@@ -15,6 +15,7 @@ const CLOUD_MODELS = {
   anthropic: ["claude-opus-4-5", "claude-sonnet-4-5", "claude-3-5-haiku-20241022"],
   google:    ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.5-flash"],
   openai:    ["gpt-4o", "gpt-4o-mini", "o1", "o3-mini"],
+  opencode:  ["claude-opus-4-6", "claude-sonnet-4-6", "gpt-5.4-pro", "gpt-5.4", "gpt-5.3-codex", "gpt-5.3-codex-spark", "gemini-3.1-pro", "gemini-3-pro", "gemini-3-flash", "minimax-m2.5", "kimi-k2.5", "big-pickle"],
 };
 
 
@@ -398,8 +399,8 @@ export default function App() {
   const [modelName, setModelName] = useState(() => localStorage.getItem("modelName") || "");
   const [draftModelName, setDraftModelName] = useState(() => localStorage.getItem("modelName") || "");
   const [hiddenModels, setHiddenModels] = useState(() => JSON.parse(localStorage.getItem("hiddenModels") || "[]"));
-  const [apiKeys, setApiKeys] = useState({ anthropic: "", google: "", openai: "" });
-  const [draftApiKeys, setDraftApiKeys] = useState({ anthropic: "", google: "", openai: "" });
+  const [apiKeys, setApiKeys] = useState({ anthropic: "", google: "", openai: "", opencode: "" });
+  const [draftApiKeys, setDraftApiKeys] = useState({ anthropic: "", google: "", openai: "", opencode: "" });
   const [enabledProviders, setEnabledProviders] = useState(() =>
     JSON.parse(localStorage.getItem("enabledProviders") || "{}"));
   const [draftEnabledProviders, setDraftEnabledProviders] = useState(() =>
@@ -711,23 +712,27 @@ export default function App() {
           setShowProfileSetup(false);
         }
         // Load API keys from credential store, migrate from localStorage
-        const [akAnth, akGoog, akOai] = await Promise.all([
+        const [akAnth, akGoog, akOai, akOc] = await Promise.all([
           invoke("cred_load", { key: "apiKey_anthropic" }),
           invoke("cred_load", { key: "apiKey_google" }),
           invoke("cred_load", { key: "apiKey_openai" }),
+          invoke("cred_load", { key: "apiKey_opencode" }),
         ]);
         const lsAnth = localStorage.getItem("apiKey_anthropic");
         const lsGoog = localStorage.getItem("apiKey_google");
         const lsOai  = localStorage.getItem("apiKey_openai");
+        const lsOc   = localStorage.getItem("apiKey_opencode");
         const loadedKeys = {
           anthropic: akAnth || lsAnth || "",
           google:    akGoog || lsGoog || "",
           openai:    akOai  || lsOai  || "",
+          opencode:  akOc   || lsOc   || "",
         };
         // Migrate from localStorage → credential store
         if (!akAnth && lsAnth) { await invoke("cred_store", { key: "apiKey_anthropic", value: lsAnth }); localStorage.removeItem("apiKey_anthropic"); }
         if (!akGoog && lsGoog) { await invoke("cred_store", { key: "apiKey_google",    value: lsGoog }); localStorage.removeItem("apiKey_google"); }
         if (!akOai  && lsOai)  { await invoke("cred_store", { key: "apiKey_openai",    value: lsOai  }); localStorage.removeItem("apiKey_openai"); }
+        if (!akOc   && lsOc)   { await invoke("cred_store", { key: "apiKey_opencode",  value: lsOc   }); localStorage.removeItem("apiKey_opencode"); }
         setApiKeys(loadedKeys);
         setDraftApiKeys(loadedKeys);
       } catch (e) {
@@ -846,6 +851,7 @@ export default function App() {
     invoke("cred_store", { key: "apiKey_anthropic", value: draftApiKeys.anthropic }).catch(() => {});
     invoke("cred_store", { key: "apiKey_google",    value: draftApiKeys.google    }).catch(() => {});
     invoke("cred_store", { key: "apiKey_openai",    value: draftApiKeys.openai    }).catch(() => {});
+    invoke("cred_store", { key: "apiKey_opencode",  value: draftApiKeys.opencode  }).catch(() => {});
     localStorage.setItem("enabledProviders", JSON.stringify(draftEnabledProviders));
     setApiKeys(draftApiKeys);
     setEnabledProviders(draftEnabledProviders);
@@ -1582,6 +1588,7 @@ export default function App() {
     if ((activeCloudModels.anthropic || []).includes(modelName)) return "anthropic";
     if ((activeCloudModels.google    || []).includes(modelName)) return "google";
     if ((activeCloudModels.openai    || []).includes(modelName)) return "openai";
+    if ((activeCloudModels.opencode  || []).includes(modelName)) return "opencode";
     return "ollama";
   }
 
@@ -1753,6 +1760,14 @@ export default function App() {
         streamUrl = "https://api.openai.com/v1/chat/completions";
         streamHeaders = JSON.stringify([
           ["Authorization", `Bearer ${apiKeys.openai}`],
+          ["content-type", "application/json"],
+        ]);
+        streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, temperature, stream: true, stream_options: { include_usage: true } });
+      } else if (provider === "opencode") {
+        providerType = "openai";
+        streamUrl = "https://opencode.ai/zen/v1/chat/completions";
+        streamHeaders = JSON.stringify([
+          ["Authorization", `Bearer ${apiKeys.opencode}`],
           ["content-type", "application/json"],
         ]);
         streamBody = JSON.stringify({ model: selectedModel, messages: apiMessages, temperature, stream: true, stream_options: { include_usage: true } });
@@ -2426,6 +2441,7 @@ export default function App() {
               { key: "anthropic", label: "Anthropic (Claude)", emoji: "🟣" },
               { key: "google",    label: "Google (Gemini)",    emoji: "🔵" },
               { key: "openai",    label: "OpenAI",             emoji: "🟢" },
+              { key: "opencode",  label: "OpenCode",           emoji: "🟠" },
             ].map(({ key, label, emoji }) => (
               <div key={key} className="settings-provider-block">
                 <div className={`settings-provider-header${draftEnabledProviders[key] ? " open" : ""}`}>
