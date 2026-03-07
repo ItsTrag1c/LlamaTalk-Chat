@@ -1,7 +1,7 @@
 # LlamaTalk Desktop — Changelog
 
 A running history of all features, fixes, and improvements made to LlamaTalk Desktop.
-Last updated: 2026-03-06
+Last updated: 2026-03-07 (v0.16.0)
 
 ---
 
@@ -563,7 +563,7 @@ Last updated: 2026-03-06
 
 *This document is updated with each new version of LlamaTalk Desktop.*
 
-*Last updated: 2026-03-06 (v0.15.0)*
+*Last updated: 2026-03-07 (v0.16.0)*
 
 ---
 
@@ -575,7 +575,7 @@ Last updated: 2026-03-06
 
 ### Near-Term Features
 
-- **Project website** — A dedicated web presence for LlamaTalk with download links, a changelog, project goals, and contact information
+- ~~**Project website**~~ — Launched at [llamatalksuite.dev](https://llamatalksuite.dev) ✅
 - **Linux support** — Arch Linux / Linux builds in development
 
 ---
