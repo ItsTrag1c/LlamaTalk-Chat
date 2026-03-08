@@ -1,8 +1,8 @@
-# LlamaTalk Desktop
+# LlamaTalk Chat
 
 > A private, local-first AI chat app for macOS and Windows.
 
-LlamaTalk Desktop is a Tauri-based desktop app for chatting with [Ollama](https://ollama.com/) models and cloud AI providers — Anthropic Claude, Google Gemini, and OpenAI GPT. Your conversations and settings stay on your machine.
+LlamaTalk Chat is a Tauri-based desktop app for chatting with [Ollama](https://ollama.com/) models and cloud AI providers — Anthropic Claude, Google Gemini, and OpenAI GPT. Your conversations and settings stay on your machine.
 
 ---
 
@@ -14,14 +14,14 @@ LlamaTalk Desktop is a Tauri-based desktop app for chatting with [Ollama](https:
 
 | File | Description |
 |------|-------------|
-| `LlamaTalk Desktop_x.y.z_aarch64.dmg` | Apple Silicon installer (recommended) |
-| `LlamaTalk Desktop_x.y.z_x64.dmg` | Intel installer |
+| `LlamaTalk Chat_x.y.z_aarch64.dmg` | Apple Silicon installer (recommended) |
+| `LlamaTalk Chat_x.y.z_x64.dmg` | Intel installer |
 
 ### Windows
 
 | File | Description |
 |------|-------------|
-| `LlamaTalk Desktop_x.y.z_x64-setup.exe` | Windows installer (recommended) |
+| `LlamaTalk Chat_x.y.z_x64-setup.exe` | Windows installer (recommended) |
 | `checksums.txt` | SHA-256 checksums for verification |
 
 ---
@@ -51,7 +51,7 @@ LlamaTalk Desktop is a Tauri-based desktop app for chatting with [Ollama](https:
 ### macOS
 
 1. Download the latest DMG from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Desktop/releases/latest)
-2. Open the DMG and drag **LlamaTalk Desktop** to Applications
+2. Open the DMG and drag **LlamaTalk Chat** to Applications
 3. Launch from Applications or Spotlight
 
 **Requirements:** macOS 12.0 or later (Monterey or later). Apple Silicon (M1+) or Intel.
@@ -59,7 +59,7 @@ LlamaTalk Desktop is a Tauri-based desktop app for chatting with [Ollama](https:
 ### Windows
 
 1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Desktop/releases/latest)
-2. Run the installer — a UAC prompt will appear (installs to `C:\Program Files\LlamaTalk Desktop\`)
+2. Run the installer — a UAC prompt will appear (installs to `C:\Program Files\LlamaTalk Chat\`)
 3. Launch from the **Start Menu** or your desktop shortcut
 
 **Requirements:** Windows 10 or later (x64). [Ollama](https://ollama.com/) is required for local models — cloud models work without it.
@@ -77,6 +77,17 @@ When a newer version is available, a small orange dot (●) appears on the **Set
 All data is stored locally on your device. Sensitive credentials — PIN hash, security question hashes, and cloud API keys — are stored in the macOS Keychain / Windows Credential Manager; all other settings live in `localStorage`. Nothing is collected, tracked, or synced to any server. API keys are never exported or transmitted except as part of direct API calls to your chosen provider.
 
 See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
+
+---
+
+## CLI Version
+
+Prefer the terminal? **LlamaTalk Chat CLI** provides the same chat experience from the command line. Both versions share the same config, profiles, and conversation history.
+
+Install with PowerShell:
+```powershell
+irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-Chat/main/install-cli.ps1 | iex
+```
 
 ---
 
