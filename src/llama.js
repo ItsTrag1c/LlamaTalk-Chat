@@ -2,29 +2,20 @@ const ORANGE = "\x1b[38;5;208m";
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
 
-// ASCII llama facing right, 8 lines tall
-// [>_] terminal badge hovers in the upper-right
+// Braille-dot llama art — matches suite-wide emoji-based icon style
 const LLAMA_LINES = [
-  "          ██   [>_]   ",
-  "    ██████████████    ",
-  "    █ ◉ ███████████   ",
-  "    ██████████        ",
-  "  ██████████████████  ",
-  "  ██  ██  ██  ██  ██  ",
-  "  ██  ██  ██  ██  ██  ",
-  "                      ",
-];
-
-// Slightly shifted frame for bob animation — badge stays in the top line
-const LLAMA_LINES_BOB = [
-  "               [>_]   ",
-  "          ██          ",
-  "    ██████████████    ",
-  "    █ ◉ ███████████   ",
-  "    ██████████        ",
-  "  ██████████████████  ",
-  "  ██  ██  ██  ██  ██  ",
-  "  ██  ██  ██  ██  ██  ",
+  "    ⢀⣀⣤⣄        ",
+  "   ⢀⡴⡃⢔⣮⠯⡄      ",
+  "  ⢀⡔⡁⠞⣠⡞⣁⠌     ",
+  " ⡴⠉⡔⠁⡔⢁⡜⠁      ",
+  "⢀⡏⠁⠐⠁⣎⡡⡃       ",
+  "⢀⡃⠀⠀⠀⠉⠉⠚⢯⡦⣆⣄⣀⡀",
+  "⡏⠀⠀⠀⠄⣶⡄⠀⠀⠀⠀⠉⣳⣶⣒⡄",
+  "⢠⠅⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠟⠛⠓⡇",
+  "⠪⡡⠤⢤⣀⣀⣀⡀⡀⡀⠀⠀⣀⣀⣰⠇",
+  "⢈⡅⠀⠀⠀⠈⠁⠉⠉⠛⠓⠚⠐⠓⠲⠞⠃",
+  "⠈⠄⡔⠀⠀⡀⡀⠀⢠⠀⡄   ",
+  " ⡃⣷⠇⢄⠀⢀⣀⠁⠘⢢⢣  ",
 ];
 
 const GOLD  = "\x1b[38;5;220m";
