@@ -67,7 +67,7 @@ function parseArgs(argv) {
 
 function printHelp() {
   console.log(`
-${ORANGE}${BOLD}LlamaTalkCLI${RESET} v${VERSION}  —  Chat with local and cloud AI from the terminal
+${ORANGE}${BOLD}LlamaTalk Chat CLI${RESET} v${VERSION}  —  Chat with local and cloud AI from the terminal
 
 ${BOLD}Usage${RESET}
   llamatalkcli [options] [message]
@@ -166,7 +166,7 @@ async function runOneShot(message, config) {
 async function authenticate(config) {
   if (!pinRequired(config)) return null;
 
-  console.log(ORANGE + "\nLlamaTalkCLI" + DIM + `  v${VERSION}` + RESET);
+  console.log(ORANGE + "\nLlamaTalk Chat CLI" + DIM + `  v${VERSION}` + RESET);
 
   let attempts = 0;
   const maxAttempts = 3;

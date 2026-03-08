@@ -1,8 +1,8 @@
-# LlamaTalk CLI
+# LlamaTalk Chat CLI
 
 > Chat with local and cloud AI from any terminal window on Windows.
 
-LlamaTalk CLI is a standalone Windows terminal app for chatting with [Ollama](https://ollama.com/) models and cloud AI providers — Anthropic Claude, Google Gemini, and OpenAI GPT. No browser. No Node.js required. Just type `llama`.
+LlamaTalk Chat CLI is the terminal version of LlamaTalk Chat — a standalone Windows app for chatting with [Ollama](https://ollama.com/) models and cloud AI providers — Anthropic Claude, Google Gemini, and OpenAI GPT. No browser. No Node.js required. Just type `llama`.
 
 ---
 
@@ -129,4 +129,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-*Part of the [LlamaTalk Suite](https://llamatalksuite.dev) — Created by [ItsTrag1c](https://github.com/ItsTrag1c) — [MIT License](LICENSE)*
+*LlamaTalk Chat CLI is part of the [LlamaTalk Suite](https://llamatalksuite.dev) — Created by [ItsTrag1c](https://github.com/ItsTrag1c) — [MIT License](LICENSE)*

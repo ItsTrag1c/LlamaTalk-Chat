@@ -1,5 +1,6 @@
 {
   "name": "llamatalkcli",
+  "description": "LlamaTalk Chat CLI — the terminal version of LlamaTalk Chat for local and cloud AI",
   "version": "0.9.12",
   "author": "ItsTrag1c",
   "type": "module",
