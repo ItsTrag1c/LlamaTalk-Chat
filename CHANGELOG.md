@@ -1,6 +1,13 @@
 # Changelog — LlamaTalk Chat CLI
 
-Last updated: 2026-03-08 (v0.9.12)
+Last updated: 2026-03-08 (v0.9.13)
+
+---
+
+## v0.9.13 — 2026-03-08
+
+### Changed
+- Updated application icons to reflect new suite-wide branding
 
 ---
 
@@ -425,5 +432,5 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 
 ---
 
-Last updated: 2026-03-07 (v0.9.12)
+Last updated: 2026-03-08 (v0.9.13)
 
