@@ -8,7 +8,7 @@ LlamaTalk Chat is a Tauri-based desktop app for chatting with [Ollama](https://o
 
 ## Download
 
-**[→ Latest Release](https://github.com/ItsTrag1c/LlamaTalk-Desktop/releases/latest)**
+**[→ Latest Release](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest)**
 
 ### macOS
 
@@ -22,7 +22,7 @@ LlamaTalk Chat is a Tauri-based desktop app for chatting with [Ollama](https://o
 | File | Description |
 |------|-------------|
 | `LlamaTalk Chat_x.y.z_x64-setup.exe` | Windows installer (recommended) |
-| `checksums.txt` | SHA-256 checksums for verification |
+| `SHA256SUMS.txt` | SHA-256 checksums for verification |
 
 ---
 
@@ -50,7 +50,7 @@ LlamaTalk Chat is a Tauri-based desktop app for chatting with [Ollama](https://o
 
 ### macOS
 
-1. Download the latest DMG from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Desktop/releases/latest)
+1. Download the latest DMG from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest)
 2. Open the DMG and drag **LlamaTalk Chat** to Applications
 3. Launch from Applications or Spotlight
 
@@ -58,7 +58,7 @@ LlamaTalk Chat is a Tauri-based desktop app for chatting with [Ollama](https://o
 
 ### Windows
 
-1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Desktop/releases/latest)
+1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest)
 2. Run the installer — a UAC prompt will appear (installs to `C:\Program Files\LlamaTalk Chat\`)
 3. Launch from the **Start Menu** or your desktop shortcut
 
@@ -86,7 +86,7 @@ Prefer the terminal? **LlamaTalk Chat CLI** provides the same chat experience fr
 
 Install with PowerShell:
 ```powershell
-irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-Chat/main/install-cli.ps1 | iex
+irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-Chat/cli/install.ps1 | iex
 ```
 
 ---

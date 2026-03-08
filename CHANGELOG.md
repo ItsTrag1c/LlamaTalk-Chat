@@ -1,11 +1,16 @@
-# LlamaTalk Desktop — Changelog
+# LlamaTalk Chat — Changelog
 
-A running history of all features, fixes, and improvements made to LlamaTalk Desktop.
-Last updated: 2026-03-07
+A running history of all features, fixes, and improvements made to LlamaTalk Chat.
+Last updated: 2026-03-08
 
 ---
 
 ## v0.16.0 — 2026-03-07
+
+### Icon & Branding Redesign (post-release patch — 2026-03-08)
+- **New app icon** — replaced the flat geometric llama SVG with the 🦙 emoji tinted orange on a dark rounded-rect background. Generated via `@napi-rs/canvas` emoji rendering + `sharp` HSL hue-shifting pipeline.
+- **In-app emoji branding** — sidebar logo, streaming indicator, floating assistant widget, and assistant button all now use the 🦙 emoji instead of pixel-art SVG components. The assistant retains its idle/speaking bob animations via CSS.
+- **GitHub repo consolidation** — Desktop and CLI now share `ItsTrag1c/LlamaTalk-Chat` with `desktop` and `cli` branches.
 
 ### Security (post-release patch — 2026-03-07)
 - **HTTP redirect blocking on streaming** — `stream_chat_inner` now blocks all HTTP redirects, preventing redirect-based SSRF attacks on chat streaming requests.
