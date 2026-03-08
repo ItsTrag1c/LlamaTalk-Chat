@@ -9,7 +9,7 @@ LlamaTalk Chat CLI is the terminal version of LlamaTalk Chat — a standalone Wi
 ## Install
 
 ```powershell
-irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-CLI/master/install.ps1 | iex
+irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-Chat/cli/install.ps1 | iex
 ```
 
 Run this in PowerShell to download and install the latest release. Open a new terminal and type `llama`.
@@ -18,7 +18,7 @@ Run this in PowerShell to download and install the latest release. Open a new te
 
 ## Download
 
-**[→ Latest Release](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest)**
+**[→ Latest Release](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest)**
 
 | File | Description |
 |------|-------------|
@@ -52,20 +52,20 @@ Run this in PowerShell to download and install the latest release. Open a new te
 ### Option A — PowerShell One-Liner (Recommended)
 
 ```powershell
-irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-CLI/master/install.ps1 | iex
+irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-Chat/cli/install.ps1 | iex
 ```
 
 No admin rights needed. Installs to `%USERPROFILE%\LlamaTalkCLI\` and adds `llama` to your PATH.
 
 ### Option B — Installer
 
-1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest)
+1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest)
 2. Run the installer (UAC prompt will appear)
 3. Open a **new** CMD or PowerShell window and type `llama`
 
 ### Option C — Standalone EXE
 
-1. Download `LlamaTalkCLI.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest)
+1. Download `LlamaTalkCLI.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest)
 2. Place it anywhere — `llama.cmd` is auto-created next to it on first run
 3. Run `LlamaTalkCLI.exe` directly, or type `llama` from the same folder
 

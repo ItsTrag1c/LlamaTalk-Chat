@@ -1,10 +1,15 @@
-# Changelog — LlamaTalkCLI
+# Changelog — LlamaTalk Chat CLI
 
-Last updated: 2026-03-07 (v0.9.12)
+Last updated: 2026-03-08 (v0.9.12)
 
 ---
 
 ## v0.9.12 — 2026-03-06
+
+### Icon & Branding Update (post-release patch — 2026-03-08)
+- **New app icon** — CLI EXE now uses the orange-tinted 🦙 emoji icon with terminal badge overlay, matching the suite-wide icon system.
+- **New banner art** — replaced ASCII block-art llama with braille-dot llama art matching Build CLI's style.
+- **GitHub repo consolidation** — code now lives on `ItsTrag1c/LlamaTalk-Chat` `cli` branch (previously `LlamaTalk-CLI`).
 
 ### New Provider
 - **OpenCode support** — added OpenCode as a cloud provider. Connects to OpenCode Zen API using OpenAI-compatible streaming. Provides access to 12 models including GPT-5.x, Claude 4.6, Gemini 3.x, MiniMax, Kimi, and Big Pickle — all through a single API key. Configure via onboarding or `/set api-key opencode <key>`.
