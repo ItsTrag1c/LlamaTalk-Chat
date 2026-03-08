@@ -13,65 +13,12 @@ function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
-function LlamaAssistantSVG({ llamaState, mouthOpen }) {
-  const isThinking = llamaState === "thinking";
+function LlamaAssistantSVG({ llamaState }) {
   const isSpeaking = llamaState === "speaking";
 
   return (
     <span className={`llama-assistant-wrap${isSpeaking ? " speaking" : ""}`}>
-      <svg
-        viewBox="0 0 36 28"
-        width="80"
-        height="62"
-        fill="#f97316"
-        shapeRendering="crispEdges"
-        style={{ overflow: "visible" }}
-      >
-        {/* Ear */}
-        <rect x="28" y="0" width="3" height="6" />
-        {/* Head */}
-        <rect x="23" y="4" width="10" height="7" />
-        {/* Snout */}
-        <rect x="33" y="6" width="3" height="4" />
-        {/* Neck — long, distinct from body */}
-        <rect x="17" y="9" width="9" height="8" />
-        {/* Body */}
-        <rect x="1" y="15" width="23" height="8" />
-        {/* Tail */}
-        <rect x="0" y="15" width="3" height="5" />
-        {/* Legs — static */}
-        <rect x="16" y="23" width="3" height="5" />
-        <rect x="11" y="23" width="3" height="5" />
-        <rect x="6" y="23" width="3" height="5" />
-        <rect x="1" y="23" width="3" height="5" />
-
-        {/* Eye */}
-        <rect x="30" y="6" width="2" height="2" fill="#1a1a1a" />
-
-        {/* Eyebrow */}
-        <rect
-          className={`llama-eyebrow${isThinking ? " llama-eyebrow-thinking" : ""}`}
-          x="29"
-          y="4.5"
-          width="4"
-          height="0.8"
-          fill="#c96442"
-          style={{
-            transform: isSpeaking ? "translateY(-1px)" : "translateY(0)",
-            transition: "transform 0.3s ease",
-          }}
-        />
-
-        {/* Mouth — prop-driven open/close */}
-        <rect
-          x="29"
-          y={mouthOpen ? 8.5 : 9.2}
-          width="4"
-          height={mouthOpen ? 1.8 : 0.6}
-          fill="#1a1a1a"
-          style={{ transition: "height 0.1s ease" }}
-        />
-      </svg>
+      <span style={{ fontSize: "62px", lineHeight: 1, display: "block" }}>🦙</span>
     </span>
   );
 }
@@ -91,7 +38,7 @@ export default function AssistantApp() {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [llamaState, setLlamaState] = useState("idle");
-  const [mouthOpen, setMouthOpen] = useState(false);
+  // mouthOpen removed — emoji replaces pixel-art llama
   // Track which main-app conversation this session is synced to
   const [sessionConvId, setSessionConvId] = useState(null);
   const [sessionStartTime, setSessionStartTime] = useState(null);
@@ -145,15 +92,7 @@ export default function AssistantApp() {
     return () => mq.removeEventListener("change", onMqChange);
   }, []);
 
-  // Toggle mouth open/close while speaking
-  useEffect(() => {
-    if (llamaState !== "speaking") {
-      setMouthOpen(false);
-      return;
-    }
-    const id = setInterval(() => setMouthOpen((v) => !v), 180);
-    return () => clearInterval(id);
-  }, [llamaState]);
+  // Mouth animation removed — emoji replaces pixel-art llama
 
   // Intercept window close → hide instead of destroy
   useEffect(() => {
@@ -392,7 +331,7 @@ export default function AssistantApp() {
       {/* Llama + scrollable message list */}
       <div className="aw-top-row">
         <div className="aw-llama-wrap">
-          <LlamaAssistantSVG llamaState={llamaState} mouthOpen={mouthOpen} />
+          <LlamaAssistantSVG llamaState={llamaState} />
         </div>
 
         <div className="aw-message-list" ref={msgListRef}>

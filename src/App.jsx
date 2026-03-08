@@ -304,56 +304,11 @@ function IconCoin() {
   );
 }
 function LogoLlama() {
-  return (
-    <svg viewBox="0 0 36 28" width="28" height="22" fill="#f97316" shapeRendering="crispEdges">
-      {/* Ear */}
-      <rect x="28" y="0" width="3" height="6" />
-      {/* Head */}
-      <rect x="23" y="4" width="10" height="7" />
-      {/* Snout */}
-      <rect x="33" y="6" width="3" height="4" />
-      {/* Neck — long, distinct from body */}
-      <rect x="17" y="9" width="9" height="8" />
-      {/* Body */}
-      <rect x="1" y="15" width="23" height="8" />
-      {/* Tail */}
-      <rect x="0" y="15" width="3" height="5" />
-      {/* Legs */}
-      <rect x="16" y="23" width="3" height="5" />
-      <rect x="11" y="23" width="3" height="5" />
-      <rect x="6" y="23" width="3" height="5" />
-      <rect x="1" y="23" width="3" height="5" />
-      {/* Eye */}
-      <rect x="30" y="6" width="2" height="2" fill="#1a1a1a" />
-    </svg>
-  );
+  return <span style={{ fontSize: "22px", lineHeight: 1 }}>🦙</span>;
 }
 function LlamaRunning() {
   return (
-    <span className="llama-run-wrap">
-      <svg className="llama-run-svg" viewBox="0 0 36 28" width="36" height="28" fill="#f97316" shapeRendering="crispEdges" style={{ overflow: "visible" }}>
-        {/* Ear */}
-        <rect x="28" y="0" width="3" height="6" />
-        {/* Head */}
-        <rect x="23" y="4" width="10" height="7" />
-        {/* Snout */}
-        <rect x="33" y="6" width="3" height="4" />
-        {/* Neck — long, distinct from body */}
-        <rect x="17" y="9" width="9" height="8" />
-        {/* Body */}
-        <rect x="1" y="15" width="23" height="8" />
-        {/* Tail */}
-        <rect x="0" y="15" width="3" height="5" />
-        {/* Front near leg */}
-        <rect className="llama-leg llama-leg-a" x="16" y="23" width="3" height="5" />
-        {/* Front far leg */}
-        <rect className="llama-leg llama-leg-b" x="11" y="23" width="3" height="5" />
-        {/* Back near leg */}
-        <rect className="llama-leg llama-leg-b" x="6" y="23" width="3" height="5" />
-        {/* Back far leg */}
-        <rect className="llama-leg llama-leg-a" x="1" y="23" width="3" height="5" />
-      </svg>
-    </span>
+    <span className="llama-run-wrap" style={{ fontSize: "28px", lineHeight: 1 }}>🦙</span>
   );
 }
 
@@ -2175,18 +2130,7 @@ export default function App() {
               title={showAssistant ? "Hide Llama Assistant" : "Show Llama Assistant"}
             >
               <div className="sidebar-assistant-icon-wrap">
-                <svg viewBox="0 0 36 28" width="22" height="17" fill="currentColor" shapeRendering="crispEdges">
-                  <rect x="28" y="0" width="3" height="6" />
-                  <rect x="23" y="4" width="10" height="7" />
-                  <rect x="33" y="6" width="3" height="4" />
-                  <rect x="17" y="9" width="9" height="8" />
-                  <rect x="1" y="15" width="23" height="8" />
-                  <rect x="0" y="15" width="3" height="5" />
-                  <rect x="16" y="23" width="3" height="5" />
-                  <rect x="11" y="23" width="3" height="5" />
-                  <rect x="6" y="23" width="3" height="5" />
-                  <rect x="1" y="23" width="3" height="5" />
-                </svg>
+                <span style={{ fontSize: "17px", lineHeight: 1 }}>🦙</span>
                 <span className="sidebar-assistant-plus">+</span>
               </div>
             </button>
