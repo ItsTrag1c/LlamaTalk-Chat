@@ -5,6 +5,13 @@ Last updated: 2026-03-08 (v0.16.1)
 
 ---
 
+## v0.16.1 — 2026-03-08 (patch 2026-03-08)
+
+### Changed
+- Updated application icons
+
+---
+
 ## v0.16.1 — 2026-03-08
 
 ### Changed
