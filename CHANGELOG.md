@@ -1,7 +1,14 @@
 # LlamaTalk Chat — Changelog
 
 A running history of all features, fixes, and improvements made to LlamaTalk Chat.
-Last updated: 2026-03-08
+Last updated: 2026-03-08 (v0.16.1)
+
+---
+
+## v0.16.1 — 2026-03-08
+
+### Changed
+- Updated application icons to reflect new suite-wide branding
 
 ---
 
@@ -573,7 +580,7 @@ Last updated: 2026-03-08
 
 *This document is updated with each new version of LlamaTalk Desktop.*
 
-*Last updated: 2026-03-07 (v0.16.0)*
+*Last updated: 2026-03-08 (v0.16.1)*
 
 ---
 

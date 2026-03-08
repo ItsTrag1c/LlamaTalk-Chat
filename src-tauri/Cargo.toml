@@ -1,6 +1,6 @@
 [package]
 name = "llamachatv1"
-version = "0.16.0"
+version = "0.16.1"
 description = "LlamaTalk Chat"
 authors = ["ItsTrag1c"]
 edition = "2021"
