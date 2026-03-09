@@ -119,7 +119,7 @@ llama --version                          Print version and exit
 
 All settings and conversation history are stored locally at `%APPDATA%\LlamaTalkCLI\`. When a PIN is set, API keys and conversation history are encrypted at rest using AES-256-GCM. Config and history files are locked to your user account. Nothing is collected, tracked, or transmitted anywhere except to your chosen AI provider when you send a message. Cloud API keys are never included in exports.
 
-See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
+See our [Privacy Policy](https://llamatalksuite.dev/privacy) for full details.
 
 ---
 
