@@ -1,125 +1,116 @@
-# Install LlamaTalkCLI
+# Installing LlamaTalk
 
-LlamaTalkCLI is a standalone Windows terminal app. No Node.js or admin rights required.
+All apps are available for **Windows** and **macOS**. Pick the app you need and follow the instructions for your preferred install method.
 
 ---
 
-## Option A — One-Line Install (Recommended)
+## LlamaTalk Chat — Desktop
 
-Open PowerShell and run:
+A desktop GUI for AI conversations with a floating assistant overlay.
+
+### Windows
+
+**Installer (recommended)**
+Download `LlamaTalk Chat_x64-setup.exe` from [GitHub Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest) and run it. Installs to `C:\Program Files\LlamaTalk Chat\`.
+
+### macOS
+
+Download `LlamaTalk Chat_aarch64.dmg` from [GitHub Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest) and drag to Applications.
+
+---
+
+## LlamaTalk Chat — CLI
+
+A lightweight terminal REPL and one-shot mode for quick answers.
+
+### Windows
+
+**One-liner install**
+```powershell
+irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-Chat/cli/install.ps1 | iex
+```
+Downloads the latest release to `%USERPROFILE%\LlamaTalkCLI\` and adds it to your PATH. Run with `llama`.
+
+**Installer**
+Download `LlamaTalk CLI_setup.exe` from [GitHub Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest). Installs to `C:\Program Files\LlamaTalk CLI\` and adds `llama` to your system PATH.
+
+**Standalone EXE**
+Download `LlamaTalkCLI.exe` from [GitHub Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest). Run from anywhere — no install needed.
+
+### Usage
+
+```
+llama                # start interactive chat
+llama "question"     # one-shot mode
+llama --version      # check version
+```
+
+---
+
+## LlamaTalk Build — CLI
+
+An agentic coding assistant with 14 tools, project memory, and plan/build modes.
+
+### Windows
+
+**One-liner install**
+```powershell
+irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-Build/cli/install.ps1 | iex
+```
+Downloads the latest release to `%USERPROFILE%\LlamaTalkBuild\` and adds it to your PATH. Run with `llamabuild`.
+
+**Installer**
+Download `LlamaTalk Build_setup.exe` from [GitHub Releases](https://github.com/ItsTrag1c/LlamaTalk-Build/releases/latest). Installs to `C:\Program Files\LlamaTalk Build\` and adds `llamabuild` to your system PATH.
+
+**Standalone EXE**
+Download `LlamaTalkBuild.exe` from [GitHub Releases](https://github.com/ItsTrag1c/LlamaTalk-Build/releases/latest). Run from anywhere — no install needed.
+
+### Usage
+
+```
+llamabuild           # start agent in current directory
+llamabuild -c        # continue last session
+llamabuild --version # check version
+```
+
+---
+
+## LlamaTalk Build — Desktop
+
+The Build agent wrapped in a desktop GUI.
+
+### Windows
+
+**Installer (recommended)**
+Download `LlamaTalk Build Desktop_x64-setup.exe` from [GitHub Releases](https://github.com/ItsTrag1c/LlamaTalk-Build/releases/latest). Installs to `C:\Program Files\LlamaTalk Build Desktop\`.
+
+**MSI**
+Download `LlamaTalk Build Desktop_x64_en-US.msi` from [GitHub Releases](https://github.com/ItsTrag1c/LlamaTalk-Build/releases/latest) for MSI-based deployment.
+
+### macOS
+
+Download `LlamaTalk Build Desktop_aarch64.dmg` from [GitHub Releases](https://github.com/ItsTrag1c/LlamaTalk-Build/releases/latest) and drag to Applications.
+
+---
+
+## Verify Installation
+
+All downloads include a `SHA256SUMS.txt` file on the release page. To verify:
 
 ```powershell
-irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-CLI/master/install.ps1 | iex
+Get-FileHash .\downloaded-file.exe | Format-List
 ```
 
-This will automatically:
-- Download the latest release from GitHub
-- Place `LlamaTalkCLI.exe` in `%USERPROFILE%\LlamaTalkCLI\`
-- Write a `llama.cmd` shorthand
-- Add the folder to your **user PATH**
-
-Open a new terminal window after install, then:
-
-```
-llama                        Start interactive chat
-llama "What is 2+2?"         One-shot answer
-llama -m llama3              Use a specific model
-llama -M "Summarize this"    One-shot (flag form)
-llama --help                 Show all options
-```
-
----
-
-## Option B — Windows Installer
-
-Download `LlamaTalk CLI_X.Y.Z_setup.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest) and run it.
-
-The installer will:
-- Place `LlamaTalkCLI.exe` in `C:\Program Files\LlamaTalk CLI\`
-- Add the install folder to the **system PATH** (available to all users)
-- Write a `llama.cmd` shorthand so `llama` works in CMD and PowerShell immediately
-- Register the app in **Add/Remove Programs**
-
----
-
-## Option C — Direct EXE (No Install)
-
-Download `LlamaTalkCLI.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest) and place it anywhere.
-
-- On first run, `llama.cmd` is automatically written next to the EXE — `llama` works in CMD immediately with no setup
-- No admin rights required
-- No PATH changes made automatically
-
-To additionally ensure the folder is in your PATH and `llama` works from anywhere:
-
-```cmd
-LlamaTalkCLI --install
-```
-
-To remove those PATH and shorthand entries later:
-
-```cmd
-LlamaTalkCLI --uninstall
-```
-
----
-
-## First Run
-
-On first launch, a short onboarding wizard walks you through:
-
-1. Setting your display name
-2. Optionally creating a PIN (enables encryption for API keys and history)
-3. Choosing your Ollama server URL (defaults to `localhost:11434`)
-
-You can change all of these later via `/settings` and `/set` commands.
-
----
-
-## Updating
-
-### Via `/update` command
-
-Type `/update` inside LlamaTalkCLI. It checks GitHub for a newer version and, if found, downloads and installs it automatically with a live progress bar. SHA-256 checksum verification is performed before applying the update. No manual file download required.
-
-A dim update hint also appears after the banner at startup whenever a newer version is available on GitHub.
-
-### Via installer
-
-Download and run the new `LlamaTalk CLI_X.Y.Z_setup.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-CLI/releases/latest). Installs over the existing version. Settings and history are preserved.
-
----
-
-## Command-Line Flags
-
-| Flag | Description |
-|------|-------------|
-| `-v`, `--version` | Print version and exit |
-| `-h`, `--help` | Print help and exit |
-| `-m`, `--model <name>` | Start with a specific model |
-| `-M`, `--message <text>` | One-shot message (non-interactive) |
-| `--word-delay <ms>` | Override word-by-word display delay |
-| `--no-history` | Don't load or save conversation history |
-| `--no-banner` | Skip the startup ASCII banner |
-| `--install` | Add `llama` shorthand and PATH entry |
-| `--uninstall` | Remove shell integration |
-
-You can also pass a message as a bare argument: `llama "What is 2+2?"` — this is equivalent to using `-M`.
+Compare the hash with the one in `SHA256SUMS.txt`.
 
 ---
 
 ## Uninstall
 
-**Installer users:** Use Add/Remove Programs, or run the `Uninstall.exe` in the install folder.
-
-**Direct EXE users:** Delete `LlamaTalkCLI.exe` and `llama.cmd`. Run `LlamaTalkCLI --uninstall` first if you previously ran `--install`.
+- **Installer/MSI apps:** Use Windows Settings > Apps > Installed apps, or run the uninstaller from the install directory.
+- **One-liner installs:** Delete the install folder (`%USERPROFILE%\LlamaTalkCLI\` or `%USERPROFILE%\LlamaTalkBuild\`) and remove it from your PATH.
+- **Standalone EXE:** Just delete the file.
 
 ---
 
-## Notes
-
-- Settings and conversation history are stored in `%APPDATA%\LlamaTalkCLI\`
-- To remove all data, delete that folder
-- Cloud API keys are stored in `config.json` in that folder — encrypted when a PIN is set, never shared or exported
-- `--uninstall` removes shell integration only; it does not delete the EXE or your data
-- Supports both Ollama and OpenAI-compatible local servers (llama.cpp, LM Studio, vLLM) — auto-detected, no manual config needed
+For more info, visit [llamatalksuite.dev](https://llamatalksuite.dev).
