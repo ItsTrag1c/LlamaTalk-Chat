@@ -1,6 +1,13 @@
 # Changelog — LlamaTalk Chat CLI
 
-Last updated: 2026-03-08 (v0.9.13)
+Last updated: 2026-03-10 (v0.9.14)
+
+---
+
+## v0.9.14 — 2026-03-10
+
+### Improvements
+- **Provider labels in `/models`** — models are now grouped by provider/server with clear headers showing the backend type and URL (for local servers) or provider name (for cloud). Makes it easy to distinguish identical models served by different providers.
 
 ---
 

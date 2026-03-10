@@ -337,32 +337,72 @@ ${BOLD}Other${RESET}
   if (cmd === "/models") {
     let localModels = [];
     let runningModels = new Set();
+    let modelServerMap = {};
+    let serverBackendMap = {};
     try {
       const result = await getAllLocalModels(config);
       localModels = result.allModels;
       runningModels = result.runningModels;
-      config.modelServerMap = result.modelServerMap;
-      config.serverBackendMap = result.serverBackendMap;
+      modelServerMap = result.modelServerMap;
+      serverBackendMap = result.serverBackendMap;
+      config.modelServerMap = modelServerMap;
+      config.serverBackendMap = serverBackendMap;
       saveConfig(config);
     } catch {
       console.log(YELLOW + "  Could not reach server." + RESET);
     }
 
-    const all = buildAllModels(localModels, config);
-    if (all.length === 0) {
-      console.log(YELLOW + "  No models available." + RESET);
-    } else {
+    const visible = localModels.filter((m) => !config.hiddenModels.includes(m));
+    let hasModels = false;
+
+    if (visible.length > 0) {
+      hasModels = true;
       console.log(`\n${BOLD}Available models:${RESET}`);
-      for (const m of all) {
-        const isCurrent = m === config.selectedModel;
-        const nick = config.modelNickname?.[m];
-        const suffix = nick ? ` ${DIM}(${nick})${RESET}` : "";
-        const marker = isCurrent ? GREEN + " ◀ current" + RESET : "";
-        const running = runningModels.has(m) ? GREEN + " [running]" + RESET : "";
-        console.log(`  ${ORANGE}•${RESET} ${m}${suffix}${running}${marker}`);
+      // Group local models by server
+      const byServer = {};
+      for (const m of visible) {
+        const url = modelServerMap[m] || config.ollamaUrl;
+        if (!byServer[url]) byServer[url] = [];
+        byServer[url].push(m);
       }
-      console.log("");
+      for (const [url, models] of Object.entries(byServer)) {
+        const backend = serverBackendMap[url] || "unknown";
+        console.log(`\n  ${DIM}── ${backend} (${url}) ──${RESET}`);
+        for (const m of models) {
+          const isCurrent = m === config.selectedModel;
+          const nick = config.modelNickname?.[m];
+          const suffix = nick ? ` ${DIM}(${nick})${RESET}` : "";
+          const marker = isCurrent ? GREEN + " ◀ current" + RESET : "";
+          const running = runningModels.has(m) ? GREEN + " [running]" + RESET : "";
+          console.log(`    ${ORANGE}•${RESET} ${m}${suffix}${running}${marker}`);
+        }
+      }
     }
+
+    // Show cloud models grouped by provider
+    for (const [provider, list] of Object.entries(CLOUD_MODELS)) {
+      if (config.enabledProviders[provider]) {
+        const hasKey = config[`apiKey_${provider}`] &&
+          (typeof config[`apiKey_${provider}`] === "string" && config[`apiKey_${provider}`].length > 0) &&
+          !(config[`apiKey_${provider}`]?.v && config[`apiKey_${provider}`]?.iv);
+        if (hasKey) {
+          if (!hasModels) { console.log(`\n${BOLD}Available models:${RESET}`); hasModels = true; }
+          console.log(`\n  ${DIM}── ${provider} (cloud) ──${RESET}`);
+          for (const m of list) {
+            const isCurrent = m === config.selectedModel;
+            const nick = config.modelNickname?.[m];
+            const suffix = nick ? ` ${DIM}(${nick})${RESET}` : "";
+            const marker = isCurrent ? GREEN + " ◀ current" + RESET : "";
+            console.log(`    ${ORANGE}•${RESET} ${m}${suffix}${marker}`);
+          }
+        }
+      }
+    }
+
+    if (!hasModels) {
+      console.log(YELLOW + "  No models available." + RESET);
+    }
+    console.log("");
     return { handled: true };
   }
 
