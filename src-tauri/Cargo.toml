@@ -1,6 +1,6 @@
 [package]
 name = "clankchat"
-version = "0.16.2"
+version = "0.16.3"
 description = "Clank Chat"
 authors = ["ItsTrag1c"]
 edition = "2021"
@@ -31,4 +31,6 @@ sha2 = "0.10"
 base64 = "0.22"
 url = "2"
 keyring = "3"
+dirs = "5"
+regex = "1"
 

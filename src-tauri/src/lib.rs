@@ -19,21 +19,161 @@ fn has_path_traversal(path: &str) -> bool {
         .any(|c| c == std::path::Component::ParentDir)
 }
 
+/// Checks whether a path targets known-sensitive directories (SSH keys,
+/// cloud credentials, browser profiles, etc.).  Returns an error message
+/// if the path is blocked, or Ok(()) if it passes.
+fn check_sensitive_path(path: &str) -> Result<(), String> {
+    // Normalise to forward-slashes and lowercase for matching on Windows
+    let normalised = path.replace('\\', "/").to_lowercase();
+
+    // Sensitive directory fragments — if any appear anywhere in the path we
+    // reject the request.  This is intentionally broad: the app only needs
+    // access to Documents, AppData, and temp dirs.
+    const BLOCKED_FRAGMENTS: &[&str] = &[
+        "/.ssh/",
+        "/.aws/",
+        "/.gnupg/",
+        "/.gpg/",
+        "/.config/gcloud/",
+        "/.azure/",
+        "/.kube/",
+        "/.docker/",
+        // Windows Credential Store / token broker
+        "/microsoft/credentials/",
+        "/microsoft/protect/",
+        "/microsoft/vault/",
+        // Browser profile directories (cookies, passwords, tokens)
+        "/google/chrome/user data/",
+        "/mozilla/firefox/profiles",
+        "/microsoft/edge/user data/",
+        "/browsercore/",
+        "/chromium/user data/",
+        // System directories
+        "/windows/system32/",
+        "/windows/syswow64/",
+        "/system32/config/",
+    ];
+
+    for fragment in BLOCKED_FRAGMENTS {
+        if normalised.contains(fragment) {
+            return Err(format!(
+                "Access to sensitive directory is blocked: {}",
+                fragment.trim_matches('/')
+            ));
+        }
+    }
+
+    // Also block paths that end with a sensitive filename (no trailing slash)
+    const BLOCKED_SUFFIXES: &[&str] = &[
+        "/.ssh/id_rsa",
+        "/.ssh/id_ed25519",
+        "/.ssh/id_ecdsa",
+        "/.ssh/known_hosts",
+        "/.ssh/authorized_keys",
+        "/.aws/credentials",
+        "/.aws/config",
+        "/.netrc",
+        "/.npmrc",
+        "/.env",
+    ];
+
+    for suffix in BLOCKED_SUFFIXES {
+        if normalised.ends_with(suffix) {
+            return Err(format!(
+                "Access to sensitive file is blocked: {}",
+                suffix.trim_start_matches('/')
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validates that a path is within one of the allowed safe directories:
+/// Documents, AppData (ClankCLI / ClankBuild / ClankChat dirs), or temp.
+fn validate_file_path(path: &str) -> Result<(), String> {
+    if has_path_traversal(path) {
+        return Err("Path traversal not allowed.".to_string());
+    }
+    check_sensitive_path(path)?;
+
+    let canonical = std::path::Path::new(path)
+        .canonicalize()
+        .map_err(|_| "Path does not exist or cannot be resolved.".to_string())?;
+
+    // Build list of allowed base directories
+    let mut allowed: Vec<std::path::PathBuf> = Vec::new();
+
+    // Documents folder
+    if let Some(docs) = dirs::document_dir() {
+        if let Ok(c) = docs.canonicalize() { allowed.push(c); }
+    }
+    // Temp directory
+    if let Ok(c) = std::env::temp_dir().canonicalize() {
+        allowed.push(c);
+    }
+    // AppData directory (covers ClankCLI, ClankBuild, ClankChat, etc.)
+    if let Some(data) = dirs::data_dir() {
+        if let Ok(c) = data.canonicalize() { allowed.push(c); }
+    }
+    if let Some(data_local) = dirs::data_local_dir() {
+        if let Ok(c) = data_local.canonicalize() { allowed.push(c); }
+    }
+    // Also allow config_dir (on Windows this is the same as data_dir / Roaming)
+    if let Some(config) = dirs::config_dir() {
+        if let Ok(c) = config.canonicalize() { allowed.push(c); }
+    }
+
+    if allowed.iter().any(|base| canonical.starts_with(base)) {
+        return Ok(());
+    }
+
+    Err("File path is outside the allowed directories (Documents, AppData, temp).".to_string())
+}
+
 #[tauri::command]
 fn write_text_file(path: String, content: String) -> Result<(), String> {
+    // For write, the file may not exist yet, so validate the parent directory
     if has_path_traversal(&path) { return Err("Path traversal not allowed.".to_string()); }
+    check_sensitive_path(&path)?;
+
+    let file_path = std::path::Path::new(&path);
+    let parent = file_path.parent()
+        .ok_or_else(|| "Invalid file path.".to_string())?;
+    let canonical_parent = parent.canonicalize()
+        .map_err(|_| "Parent directory does not exist or cannot be resolved.".to_string())?;
+
+    let mut allowed: Vec<std::path::PathBuf> = Vec::new();
+    if let Some(docs) = dirs::document_dir() {
+        if let Ok(c) = docs.canonicalize() { allowed.push(c); }
+    }
+    if let Ok(c) = std::env::temp_dir().canonicalize() { allowed.push(c); }
+    if let Some(data) = dirs::data_dir() {
+        if let Ok(c) = data.canonicalize() { allowed.push(c); }
+    }
+    if let Some(data_local) = dirs::data_local_dir() {
+        if let Ok(c) = data_local.canonicalize() { allowed.push(c); }
+    }
+    if let Some(config) = dirs::config_dir() {
+        if let Ok(c) = config.canonicalize() { allowed.push(c); }
+    }
+
+    if !allowed.iter().any(|base| canonical_parent.starts_with(base)) {
+        return Err("File path is outside the allowed directories (Documents, AppData, temp).".to_string());
+    }
+
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 async fn read_file_text(path: String) -> Result<String, String> {
-    if has_path_traversal(&path) { return Err("Path traversal not allowed.".to_string()); }
+    validate_file_path(&path)?;
     std::fs::read_to_string(&path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 async fn read_file_base64(path: String) -> Result<String, String> {
-    if has_path_traversal(&path) { return Err("Path traversal not allowed.".to_string()); }
+    validate_file_path(&path)?;
     let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
     Ok(general_purpose::STANDARD.encode(&bytes))
 }
@@ -46,6 +186,10 @@ fn validate_ollama_url(url_str: &str) -> Result<(), String> {
         s => return Err(format!("Only http and https URLs are allowed, got: {}", s)),
     }
     if let Some(host) = parsed.host_str() {
+        // Allow localhost and 127.0.0.1 (Ollama runs locally)
+        if host == "localhost" || host == "127.0.0.1" {
+            return Ok(());
+        }
         // Reject link-local addresses (cloud metadata endpoints, e.g. 169.254.169.254)
         if host.starts_with("169.254.") {
             return Err("Link-local IP addresses are not allowed.".to_string());
@@ -57,6 +201,23 @@ fn validate_ollama_url(url_str: &str) -> Result<(), String> {
         // Reject IPv6 loopback and unspecified
         if host == "[::1]" || host == "[::]" {
             return Err("IPv6 loopback/unspecified addresses are not allowed.".to_string());
+        }
+        // Block RFC1918 private IP ranges — prevents SSRF to internal network devices
+        // while still allowing localhost (handled above)
+        if let Ok(ip) = host.parse::<std::net::Ipv4Addr>() {
+            let octets = ip.octets();
+            // 10.0.0.0/8
+            if octets[0] == 10 {
+                return Err("Private network addresses (10.x.x.x) are not allowed. Use 127.0.0.1 for local Ollama.".to_string());
+            }
+            // 172.16.0.0/12 (172.16.0.0 – 172.31.255.255)
+            if octets[0] == 172 && (octets[1] >= 16 && octets[1] <= 31) {
+                return Err("Private network addresses (172.16-31.x.x) are not allowed. Use 127.0.0.1 for local Ollama.".to_string());
+            }
+            // 192.168.0.0/16
+            if octets[0] == 192 && octets[1] == 168 {
+                return Err("Private network addresses (192.168.x.x) are not allowed. Use 127.0.0.1 for local Ollama.".to_string());
+            }
         }
     }
     Ok(())
@@ -105,6 +266,7 @@ async fn ollama_get(url: String) -> Result<String, String> {
     validate_ollama_url(&url)?;
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|e| e.to_string())?;
     let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
@@ -119,6 +281,7 @@ async fn ollama_post(url: String, body: String) -> Result<String, String> {
     validate_ollama_url(&url)?;
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(300))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|e| e.to_string())?;
     let res = client
@@ -523,10 +686,31 @@ fn launch_installer(_app: tauri::AppHandle, path: String) -> Result<(), String> 
         .and_then(|n| n.to_str())
         .ok_or_else(|| "Invalid installer path.".to_string())?;
 
+    // Require strict pattern: "Clank <Product>_<version>_<arch>-setup.exe" (Windows)
+    // or "Clank_<Product>_<version>_<arch>.dmg" (macOS)
+    // Version must look like digits.digits.digits
+    let version_pattern = regex::Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
+
     #[cfg(target_os = "windows")]
-    let valid = file_name.starts_with("Clank") && file_name.ends_with(".exe");
+    let valid = {
+        // Match patterns like "Clank Desktop_0.16.1_x64-setup.exe" or "Clank Chat_1.0.0_x64-setup.exe"
+        // Also allow "Clank Build_2.5.0_x64-setup.exe"
+        let re = regex::Regex::new(r"^Clank[ _](Desktop|Chat|Build|CLI)_([^_]+)_x64-setup\.exe$").unwrap();
+        if let Some(caps) = re.captures(file_name) {
+            version_pattern.is_match(&caps[2])
+        } else {
+            false
+        }
+    };
     #[cfg(target_os = "macos")]
-    let valid = file_name.starts_with("Clank") && file_name.ends_with(".dmg");
+    let valid = {
+        let re = regex::Regex::new(r"^Clank_(Desktop|Chat|Build|CLI)_([^_]+)_(aarch64|x64)\.dmg$").unwrap();
+        if let Some(caps) = re.captures(file_name) {
+            version_pattern.is_match(&caps[2])
+        } else {
+            false
+        }
+    };
 
     if !valid {
         return Err("Path does not point to a valid Clank installer.".to_string());
