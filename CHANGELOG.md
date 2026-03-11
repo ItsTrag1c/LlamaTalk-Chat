@@ -1,7 +1,18 @@
 # Clank Chat — Changelog
 
 A running history of all features, fixes, and improvements made to Clank Chat.
-Last updated: 2026-03-08 (v0.16.1)
+Last updated: 2026-03-10 (v0.16.3)
+
+---
+
+## v0.16.3 (2026-03-10)
+### Security
+- Fixed stale APP_VERSION constant (was 0.15.0, now matches release)
+- Filesystem commands (read/write) scoped to safe directories (Documents, AppData, temp)
+- Sensitive path blocking: .ssh, .aws, .gnupg, browser profiles, credential files
+- Tightened launch_installer filename validation with strict regex pattern
+- RFC1918 private IP ranges blocked in Ollama URL validation (localhost still allowed)
+- Ollama HTTP requests no longer follow redirects (Policy::none)
 
 ---
 
@@ -587,7 +598,7 @@ Last updated: 2026-03-08 (v0.16.1)
 
 *This document is updated with each new version of Clank Desktop.*
 
-*Last updated: 2026-03-08 (v0.16.1)*
+*Last updated: 2026-03-10 (v0.16.3)*
 
 ---
 

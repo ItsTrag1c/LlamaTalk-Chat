@@ -76,6 +76,8 @@ When a newer version is available, a small orange dot (●) appears on the **Set
 
 All data is stored locally on your device. Sensitive credentials — PIN hash, security question hashes, and cloud API keys — are stored in the macOS Keychain / Windows Credential Manager; all other settings live in `localStorage`. Nothing is collected, tracked, or synced to any server. API keys are never exported or transmitted except as part of direct API calls to your chosen provider.
 
+Filesystem commands are scoped to safe directories (Documents, AppData, temp) and sensitive paths (`.ssh`, `.aws`, `.gnupg`, browser profiles, credential files) are blocked. RFC1918 private IP ranges are blocked in Ollama URL validation (localhost remains allowed), and Ollama HTTP requests do not follow redirects.
+
 See our [Privacy Policy](https://clanksuite.dev/privacy) for full details.
 
 ---

@@ -1,7 +1,7 @@
 # Clank — Privacy Policy
 
 **Effective Date:** March 2, 2026
-**Last Updated:** March 8, 2026 (rev. 8)
+**Last Updated:** March 10, 2026 (rev. 9)
 
 ---
 
@@ -168,7 +168,9 @@ GitHub will log the IP address of the request as with any public API call — th
 ### Network & Application Security
 
 - **HTTPS Enforcement** — All cloud API communication uses HTTPS. Endpoints are hardcoded and cannot be downgraded.
-- **Server URL Validation** — The local server URL (Ollama or OpenAI-compatible) is validated before every request. Non-HTTP/HTTPS schemes and link-local addresses (169.254.x.x) are rejected.
+- **Server URL Validation** — The local server URL (Ollama or OpenAI-compatible) is validated before every request. Non-HTTP/HTTPS schemes, link-local addresses (169.254.x.x), and RFC1918 private IP ranges (10.x.x.x, 172.16–31.x.x, 192.168.x.x) are rejected — localhost remains allowed.
+- **Filesystem Scoping (Desktop)** — File read/write commands are restricted to safe directories (Documents, AppData, temp). Sensitive paths (`.ssh`, `.aws`, `.gnupg`, browser profiles, credential files) are explicitly blocked.
+- **Redirect Blocking (Desktop)** — Ollama HTTP requests use a no-redirect policy (`Policy::none`) to prevent redirect-based SSRF attacks.
 - **Request Timeouts** — All network calls have enforced timeouts to prevent indefinite hangs (Ollama: 120s, cloud providers: 60s, connection checks: 10–15s).
 - **Content Security Policy (Desktop)** — Strict CSP prevents inline scripts, eval(), and unauthorized network connections.
 - **Capability Scoping (Desktop)** — Tauri capabilities limit what file and system operations the app can perform to the minimum required.
@@ -277,6 +279,7 @@ Clank is designed with privacy-by-default principles consistent with:
 - **2026-03-06 (rev. 6)** — Desktop v0.15.0 security hardening. Cloud API keys moved from localStorage to OS credential store (Windows Credential Manager / macOS Keychain). Added credential key allowlist. Added PIN rate limiting with progressive lockout. Added cloud URL domain allowlist and disabled HTTP redirects. Updated integrity verification to fail-closed model with GitHub URL validation. Google API keys now sent via header instead of URL parameter. Added macOS Keychain references throughout.
 - **2026-03-07 (rev. 7)** — Added Clank Build as third application. Documented Build data storage (config, memory, session logs), data retention, deletion, and encryption. Updated overview to cover all apps. Added OpenCode cloud provider support (Desktop v0.16.0). Website launched at clanksuite.dev.
 - **2026-03-08 (rev. 8)** — Expanded to four applications (Build CLI + Build Desktop). Added Build-specific security: path traversal protection, destructive command detection, tool safety levels (low/medium/high), file operation tracking. Added Build Desktop to third-party dependencies. Fixed update check URLs to current repo names. Added OpenCode to all cloud provider references.
+- **2026-03-10 (rev. 9)** — Desktop v0.16.3 security hardening. Filesystem commands scoped to safe directories with sensitive path blocking. RFC1918 private IP ranges blocked in Ollama URL validation. Ollama redirect policy set to none.
 
 ---
 
