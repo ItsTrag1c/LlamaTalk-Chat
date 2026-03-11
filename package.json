@@ -1,7 +1,7 @@
 {
   "name": "clankcli",
   "description": "Clank Chat CLI — the terminal version of Clank Chat for local and cloud AI",
-  "version": "0.9.15",
+  "version": "0.9.16",
   "author": "ItsTrag1c",
   "type": "module",
   "bin": {

@@ -3,14 +3,14 @@
 process.removeAllListeners("warning");
 
 import { createInterface } from "readline";
-import { loadConfig, saveConfig, isFirstRun, pinRequired, verifyPin, needsPinMigration, hashPin, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveConfigWithKey } from "./src/config.js";
+import { loadConfig, saveConfig, isFirstRun, pinRequired, verifyPin, needsPinMigration, hashPin, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveConfigWithKey, isPinLockedOut, recordFailedPinAttempt, resetPinAttempts } from "./src/config.js";
 import { runOnboarding } from "./src/onboarding.js";
 import { runChat } from "./src/chat.js";
 import { sendMessage, detectBackend, getOllamaModels, getOpenAICompatModels, getRunningOllamaModels, getAllLocalModels } from "./src/api.js";
 import { runInstall, runUninstall, ensureClankCmd } from "./src/install.js";
 import { fetchLatestRelease } from "./src/updater.js";
 
-const VERSION = "0.9.15";
+const VERSION = "0.9.16";
 
 const RED = "\x1b[31m";
 const ORANGE = "\x1b[38;5;208m";
@@ -168,6 +168,12 @@ async function authenticate(config) {
 
   console.log(ORANGE + "\nClank Chat CLI" + DIM + `  v${VERSION}` + RESET);
 
+  // Check persistent lockout: 10+ failed attempts within the last 30 minutes
+  if (isPinLockedOut()) {
+    console.log(RED + "  Too many failed PIN attempts. Locked out for 30 minutes." + RESET);
+    process.exit(1);
+  }
+
   let attempts = 0;
   const maxAttempts = 3;
 
@@ -179,9 +185,15 @@ async function authenticate(config) {
       }
       config.lastUnlockTime = new Date().toISOString();
       saveConfig(config);
+      resetPinAttempts(); // Clear failed attempts on success
       return pin;
     }
     attempts++;
+    recordFailedPinAttempt(); // Persist each failure
+    if (isPinLockedOut()) {
+      console.log(RED + "  Too many failed PIN attempts. Locked out for 30 minutes." + RESET);
+      process.exit(1);
+    }
     if (attempts < maxAttempts) {
       console.log(RED + `  Incorrect PIN. ${maxAttempts - attempts} attempt(s) remaining.` + RESET);
     }
@@ -195,6 +207,10 @@ async function authenticate(config) {
 // Re-authenticate after inactivity timeout (PIN only, no banner/header)
 // ---------------------------------------------------------------------------
 async function reAuth(config) {
+  if (isPinLockedOut()) {
+    console.log(RED + "  Too many failed PIN attempts. Locked out for 30 minutes." + RESET);
+    return null;
+  }
   let attempts = 0;
   const maxAttempts = 3;
   while (attempts < maxAttempts) {
@@ -202,9 +218,15 @@ async function reAuth(config) {
     if (verifyPin(pin, config.pinHash)) {
       config.lastUnlockTime = new Date().toISOString();
       saveConfig(config);
+      resetPinAttempts();
       return pin;
     }
     attempts++;
+    recordFailedPinAttempt();
+    if (isPinLockedOut()) {
+      console.log(RED + "  Too many failed PIN attempts. Locked out for 30 minutes." + RESET);
+      return null;
+    }
     if (attempts < maxAttempts) {
       console.log(RED + `  Incorrect PIN. ${maxAttempts - attempts} attempt(s) remaining.` + RESET);
     }

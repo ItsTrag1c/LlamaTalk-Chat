@@ -207,6 +207,53 @@ export function isFirstRun(config) {
   return !config.onboardingDone;
 }
 
+// --- PIN attempt tracking (persists across restarts) ---
+
+function getPinAttemptsPath() {
+  const appData = process.env.APPDATA;
+  if (appData) return join(appData, "ClankCLI", "pin-attempts.json");
+  return join(homedir(), ".clankcli", "pin-attempts.json");
+}
+
+export function loadPinAttempts() {
+  const p = getPinAttemptsPath();
+  try {
+    if (!existsSync(p)) return { attempts: [] };
+    const raw = readFileSync(p, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.attempts)) return { attempts: [] };
+    return parsed;
+  } catch {
+    return { attempts: [] };
+  }
+}
+
+export function savePinAttempts(data) {
+  const p = getPinAttemptsPath();
+  const dir = dirname(p);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  writeFileSync(p, JSON.stringify(data, null, 2), "utf8");
+  applyFilePermissions(p);
+}
+
+export function recordFailedPinAttempt() {
+  const data = loadPinAttempts();
+  data.attempts.push(Date.now());
+  savePinAttempts(data);
+}
+
+export function resetPinAttempts() {
+  savePinAttempts({ attempts: [] });
+}
+
+export function isPinLockedOut() {
+  const data = loadPinAttempts();
+  const windowMs = 30 * 60 * 1000; // 30 minutes
+  const cutoff = Date.now() - windowMs;
+  const recentAttempts = data.attempts.filter((t) => t > cutoff);
+  return recentAttempts.length >= 10;
+}
+
 function legacyHashPin(pin) {
   return createHash("sha256").update("clankcli-pin-salt" + pin).digest("hex");
 }

@@ -3,6 +3,7 @@ import { createInterface } from "readline";
 import { join, dirname } from "path";
 import { homedir, tmpdir } from "os";
 import { spawn } from "child_process";
+import { randomBytes } from "crypto";
 import { saveConfig, saveConfigWithKey, hashPin, verifyPin, getConfigPath, getHistoryPath, generateEncKeySalt, deriveEncKey, decryptApiKeys, saveHistory, loadHistory } from "./config.js";
 import { getOllamaModels, getOpenAICompatModels, detectBackend, getAllLocalModels, CLOUD_MODELS } from "./api.js";
 import { printBanner } from "./llama.js";
@@ -30,7 +31,7 @@ function spawnUpdateBat(batPath, needsElevation) {
   }
 }
 
-const ALLOWED_PROVIDERS = ["anthropic", "google", "openai"];
+const ALLOWED_PROVIDERS = ["anthropic", "google", "openai", "opencode"];
 const PIN_FREQS = ["always", "30days", "never"];
 
 function validateImportedConfig(imported) {
@@ -511,13 +512,23 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     return { handled: true };
   }
 
-  // /set api-key <provider> <key>
-  if (cmd === "/set" && args[0] === "api-key" && args[1] && args[2]) {
+  // /set api-key <provider> [key]
+  if (cmd === "/set" && args[0] === "api-key" && args[1]) {
     const provider = args[1].toLowerCase();
-    const key = args[2];
     if (!["anthropic", "google", "openai", "opencode"].includes(provider)) {
       console.log(RED + "  Unknown provider. Use: anthropic, google, openai, opencode" + RESET);
       return { handled: true };
+    }
+    // If key provided as argument, use it directly (backward compat).
+    // Otherwise prompt with masked input so the key never appears in scrollback.
+    let key = args[2];
+    if (!key) {
+      key = await askMasked(`  Enter ${provider} API key: `);
+      if (!key || key.trim().length === 0) {
+        console.log(YELLOW + "  No key entered — cancelled." + RESET);
+        return { handled: true };
+      }
+      key = key.trim();
     }
     config[`apiKey_${provider}`] = key;
     config.enabledProviders[provider] = true;
@@ -836,7 +847,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
         return { handled: true };
       }
       const needsElevation = !isWritableDir(installDir);
-      const batPath = join(tmpdir(), "clankcli-update.bat");
+      const batPath = join(tmpdir(), `clankcli-update-${randomBytes(4).toString("hex")}.bat`);
       const currentExe = process.execPath;
       const bat = [
         "@echo off",
@@ -914,7 +925,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
       }
     }
 
-    const batPath = join(tmpdir(), "clankcli-update.bat");
+    const batPath = join(tmpdir(), `clankcli-update-${randomBytes(4).toString("hex")}.bat`);
     const currentExe = process.execPath;
     const batLines = [
       "@echo off",
