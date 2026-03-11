@@ -1,6 +1,6 @@
 [package]
 name = "clankchat"
-version = "0.16.1"
+version = "0.16.2"
 description = "Clank Chat"
 authors = ["ItsTrag1c"]
 edition = "2021"
