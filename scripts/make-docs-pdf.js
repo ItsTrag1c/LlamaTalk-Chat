@@ -1,4 +1,4 @@
-// Generates "LlamaTalk Goals.pdf" and "LlamaTalk Privacy Policy.pdf"
+// Generates "Clank Goals.pdf" and "Clank Privacy Policy.pdf"
 // into src-tauri/resources/ for bundling with the installer.
 // Run with: node scripts/make-docs-pdf.js
 
@@ -119,32 +119,32 @@ function renderDoc(content, outputPath) {
 }
 
 // ---- Our Goals ----
-const GOALS = `# LlamaTalk — Our Goals
+const GOALS = `# Clank — Our Goals
 
 ---
 
 ## Why We Built This
 
-LlamaTalk exists because AI tools should be private by default, not as an afterthought.
+Clank exists because AI tools should be private by default, not as an afterthought.
 We believe your conversations belong to you — not to cloud platforms, not to us, and not
 to anyone else.
 
-The LlamaTalk suite includes two apps built on the same principles: **LlamaTalk Desktop**,
-a full graphical app for Windows, and **LlamaTalkCLI**, a terminal companion that runs in
+The Clank suite includes two apps built on the same principles: **Clank Desktop**,
+a full graphical app for Windows, and **ClankCLI**, a terminal companion that runs in
 any PowerShell or CMD window. Same values. Same local-first approach. Different surfaces.
 
 ## What We Stand For
 
 ### Local First
 
-Everything in the LlamaTalk suite defaults to local. Your conversations, your profile,
+Everything in the Clank suite defaults to local. Your conversations, your profile,
 your settings — stored on your device, not transmitted anywhere. We connect to your own
 Ollama server by default, meaning your messages never leave your machine unless you
 choose otherwise.
 
-LlamaTalk Desktop stores all data in your device's local browser storage.
-LlamaTalkCLI stores config and conversation history in your user AppData folder
-(%APPDATA%\\LlamaTalkCLI\\). Neither app has a back-end, a cloud sync, or a database
+Clank Desktop stores all data in your device's local browser storage.
+ClankCLI stores config and conversation history in your user AppData folder
+(%APPDATA%\\ClankCLI\\). Neither app has a back-end, a cloud sync, or a database
 that we control.
 
 ### Honest Cloud Access
@@ -156,7 +156,7 @@ No hidden requests, no background sync.
 
 ### Zero Data Collection
 
-We collect nothing. No analytics, no telemetry, no crash reports. There is no LlamaTalk
+We collect nothing. No analytics, no telemetry, no crash reports. There is no Clank
 back-end watching how you use the apps. We have no accounts, no servers, no way to see
 your data — because we deliberately have not built any of that.
 
@@ -167,8 +167,8 @@ We update them alongside the apps so you always know what changed and why.
 
 ### Open to Everyone
 
-LlamaTalk Desktop runs on Windows today, with macOS and Linux builds planned.
-LlamaTalkCLI runs on Windows from any terminal, with no installation required beyond
+Clank Desktop runs on Windows today, with macOS and Linux builds planned.
+ClankCLI runs on Windows from any terminal, with no installation required beyond
 a single EXE. No subscription required to use local models. Cloud providers use your
 own API key, billed directly to you.
 
@@ -182,19 +182,19 @@ own API key, billed directly to you.
 
 ---
 
-*LlamaTalk — your conversations, your machine, your control.*
+*Clank — your conversations, your machine, your control.*
 `;
 
 // ---- Privacy Policy (read from canonical External Documents source) ----
-const PRIVACY_PATH = "E:\\LlamaTalk Files\\External Documents\\LlamaTalk Privacy Policy.md";
+const PRIVACY_PATH = "E:\\LlamaTalk Files\\External Documents\\Clank Privacy Policy.md";
 let PRIVACY;
 try {
   PRIVACY = readFileSync(PRIVACY_PATH, "utf8");
 } catch {
   console.error(`Privacy Policy not found at: ${PRIVACY_PATH}`);
   console.error("Using fallback — generate the External Documents version first.");
-  PRIVACY = "# LlamaTalk — Privacy Policy\n\nPrivacy policy file not found.";
+  PRIVACY = "# Clank — Privacy Policy\n\nPrivacy policy file not found.";
 }
 
-renderDoc(GOALS,    join(RESOURCES_DIR, "LlamaTalk Goals.pdf"));
-renderDoc(PRIVACY,  join(RESOURCES_DIR, "LlamaTalk Privacy Policy.pdf"));
+renderDoc(GOALS,    join(RESOURCES_DIR, "Clank Goals.pdf"));
+renderDoc(PRIVACY,  join(RESOURCES_DIR, "Clank Privacy Policy.pdf"));

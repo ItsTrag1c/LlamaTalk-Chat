@@ -1,6 +1,6 @@
-# LlamaTalk Chat — Changelog
+# Clank Chat — Changelog
 
-A running history of all features, fixes, and improvements made to LlamaTalk Chat.
+A running history of all features, fixes, and improvements made to Clank Chat.
 Last updated: 2026-03-08 (v0.16.1)
 
 ---
@@ -24,7 +24,7 @@ Last updated: 2026-03-08 (v0.16.1)
 ### Icon & Branding Redesign (post-release patch — 2026-03-08)
 - **New app icon** — replaced the flat geometric llama SVG with the 🦙 emoji tinted orange on a dark rounded-rect background. Generated via `@napi-rs/canvas` emoji rendering + `sharp` HSL hue-shifting pipeline.
 - **In-app emoji branding** — sidebar logo, streaming indicator, floating assistant widget, and assistant button all now use the 🦙 emoji instead of pixel-art SVG components. The assistant retains its idle/speaking bob animations via CSS.
-- **GitHub repo consolidation** — Desktop and CLI now share `ItsTrag1c/LlamaTalk-Chat` with `desktop` and `cli` branches.
+- **GitHub repo consolidation** — Desktop and CLI now share `ItsTrag1c/Clank-Chat` with `desktop` and `cli` branches.
 
 ### Security (post-release patch — 2026-03-07)
 - **HTTP redirect blocking on streaming** — `stream_chat_inner` now blocks all HTTP redirects, preventing redirect-based SSRF attacks on chat streaming requests.
@@ -44,7 +44,7 @@ Last updated: 2026-03-08 (v0.16.1)
 - **Cloud API domain allowlist** — All outbound cloud API calls are now validated against a strict HTTPS domain allowlist (api.anthropic.com, generativelanguage.googleapis.com, api.openai.com). Prevents SSRF through crafted API URLs.
 - **Download URL validation** — Remote update downloads are now restricted to github.com and objects.githubusercontent.com over HTTPS. HTTP redirects are disabled on cloud API calls.
 - **Checksum verification hardened** — Update installer checksum verification now fails closed: downloads are rejected if the checksum file cannot be fetched, the installer filename is missing from the checksum list, or the hash does not match.
-- **Installer path validation** — The `launch_installer` command now validates that the file has a LlamaTalk filename pattern and resides in the temp or install directory before execution.
+- **Installer path validation** — The `launch_installer` command now validates that the file has a Clank filename pattern and resides in the temp or install directory before execution.
 - **PIN rate limiting** — Failed PIN attempts now trigger progressive lockout (5s after 5 attempts, up to 60s after 8+), preventing brute-force attacks.
 - **Credential store key allowlist** — The credential store backend now only accepts a fixed set of known key names, preventing arbitrary key storage.
 - **IPv6 and 0.0.0.0 blocking** — Local server URL validation now also blocks 0.0.0.0, [::1], and [::] addresses.
@@ -67,7 +67,7 @@ Last updated: 2026-03-08 (v0.16.1)
 ## v0.14.0 — 2026-03-05
 
 ### New Features
-- **macOS support** — LlamaTalk Desktop now runs on macOS 12.0+ (Monterey and later). Supports both Apple Silicon (M1+) and Intel Macs. Includes all features from the Windows version except the Llama Assistant floating window (Windows only). Install via the DMG from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Desktop/releases/latest).
+- **macOS support** — Clank Desktop now runs on macOS 12.0+ (Monterey and later). Supports both Apple Silicon (M1+) and Intel Macs. Includes all features from the Windows version except the Clank Assistant floating window (Windows only). Install via the DMG from [Releases](https://github.com/ItsTrag1c/Clank-Chat/releases/latest).
 - **macOS Keychain integration** — Sensitive credentials (PIN hash, security question hashes, encryption key) are stored in the macOS Keychain instead of Windows Credential Manager, using the same secure `keyring` interface.
 
 ### Improvements
@@ -123,7 +123,7 @@ Last updated: 2026-03-08 (v0.16.1)
 
 ### New Features
 - **True streaming responses** — Messages now appear token-by-token in real time instead of loading the full response first. Works with all providers: Ollama, Anthropic, Google, and OpenAI. The word delay setting now acts as a throttle on top of the stream (0 = instant display, >0 = buffered drain at interval).
-- **llama.cpp / OpenAI-compatible server support** — LlamaTalk Desktop now auto-detects whether your local server is Ollama or an OpenAI-compatible API (llama.cpp, vLLM, etc.). Model discovery and chat automatically use the correct endpoints — no manual configuration needed.
+- **llama.cpp / OpenAI-compatible server support** — Clank Desktop now auto-detects whether your local server is Ollama or an OpenAI-compatible API (llama.cpp, vLLM, etc.). Model discovery and chat automatically use the correct endpoints — no manual configuration needed.
 - **Backend type shown on connection** — When you test your server URL in Settings, the detected backend type (Ollama or OpenAI-compatible) is identified and saved.
 - **Stream cancellation** — The Stop button now immediately cancels the active stream on the server side rather than just hiding the response. Partial responses are preserved in the conversation.
 
@@ -174,7 +174,7 @@ Last updated: 2026-03-08 (v0.16.1)
 - **Checksum verification** — Downloaded installers are verified against a SHA-256 checksum before running, protecting against corrupted downloads.
 
 ### Setup
-- **Installer installs to Program Files** — LlamaTalk Desktop now installs to `Program Files` (64-bit) by default, matching standard Windows app conventions. A UAC prompt will appear during installation.
+- **Installer installs to Program Files** — Clank Desktop now installs to `Program Files` (64-bit) by default, matching standard Windows app conventions. A UAC prompt will appear during installation.
 
 ---
 
@@ -196,39 +196,39 @@ Last updated: 2026-03-08 (v0.16.1)
 ## v0.8.5 — 2026-03-03
 
 ### Documentation
-- **Goals and Privacy Policy updated** — Both bundled documents now cover the full LlamaTalk suite. The Privacy Policy accurately describes data storage for LlamaTalk Desktop (localStorage) and LlamaTalkCLI (%APPDATA%\LlamaTalkCLI\), and notes that the CLI's export command excludes API keys. The Goals document introduces LlamaTalkCLI alongside the Desktop app.
+- **Goals and Privacy Policy updated** — Both bundled documents now cover the full Clank suite. The Privacy Policy accurately describes data storage for Clank Desktop (localStorage) and ClankCLI (%APPDATA%\ClankCLI\), and notes that the CLI's export command excludes API keys. The Goals document introduces ClankCLI alongside the Desktop app.
 
 ---
 
 ## v0.8.4 — 2026-03-03
 
 ### Branding
-- App renamed to LlamaTalk Desktop in all system contexts (system tray, taskbar, task manager, installer, Start Menu, Add/Remove Programs, desktop notifications)
-- In-app home page title remains "LlamaTalk"
+- App renamed to Clank Desktop in all system contexts (system tray, taskbar, task manager, installer, Start Menu, Add/Remove Programs, desktop notifications)
+- In-app home page title remains "Clank"
 
 ---
 
 ## v0.8.3
 
 ### Changes
-- **Taskbar title corrected** — The window title shown in the Windows taskbar hover preview now reads "LlamaTalk" instead of the old "Ollama Chat" placeholder.
+- **Taskbar title corrected** — The window title shown in the Windows taskbar hover preview now reads "Clank" instead of the old "Ollama Chat" placeholder.
 - **Updated app icon** — The taskbar icon, desktop shortcut, and installer now use the new pixel-art llama design on a dark rounded background, consistent with the in-app logo.
-- **Sidebar assistant button updated** — The Llama Assistant toggle button in the sidebar now shows the new pixel-art llama logo.
+- **Sidebar assistant button updated** — The Clank Assistant toggle button in the sidebar now shows the new pixel-art llama logo.
 
 ---
 
 ## v0.8.2
 
 ### Changes
-- **Refreshed llama logo** — The pixelated llama mascot has been redrawn with cleaner proportions throughout the app: a longer, more distinct neck, a proper snout, and crisp pixel-art edges. The updated design appears on all screens that show the logo, in the running indicator during generation, and in the Llama Assistant widget.
+- **Refreshed llama logo** — The pixelated llama mascot has been redrawn with cleaner proportions throughout the app: a longer, more distinct neck, a proper snout, and crisp pixel-art edges. The updated design appears on all screens that show the logo, in the running indicator during generation, and in the Clank Assistant widget.
 
 ---
 
 ## v0.8.1
 
 ### Changes
-- **Llama Assistant personality** — The assistant now has a distinct personality that shapes how it responds: enthusiastic, witty, and a little irreverent. Responses feel more lively and characterful out of the box.
-- **Cleaner assistant message display** — Assistant messages in the Llama Assistant widget no longer show a model name label above the response. The header already identifies the assistant, so the per-message label was redundant. User messages still show "You" as before.
+- **Clank Assistant personality** — The assistant now has a distinct personality that shapes how it responds: enthusiastic, witty, and a little irreverent. Responses feel more lively and characterful out of the box.
+- **Cleaner assistant message display** — Assistant messages in the Clank Assistant widget no longer show a model name label above the response. The header already identifies the assistant, so the per-message label was redundant. User messages still show "You" as before.
 
 ---
 
@@ -241,7 +241,7 @@ Last updated: 2026-03-08 (v0.16.1)
 ### Privacy
 - **Prompt privacy notice in chat** — A small line below the token counter now tells you exactly where your messages are going: your local Ollama server, or the named cloud provider (Anthropic, Google, or OpenAI). The notice updates automatically when you switch models.
 - **Profile export audit trail** — Settings now shows when your profile was last exported, or "Never exported" if it hasn't been. The timestamp updates immediately after each export.
-- **Data deletion confirmation log** — Clearing profile data now requires two confirmations and shows a summary of what will be deleted (profile name and conversation count). A timestamped entry is written to `LlamaTalk-deletion-log.txt` in your Documents folder for audit purposes.
+- **Data deletion confirmation log** — Clearing profile data now requires two confirmations and shows a summary of what will be deleted (profile name and conversation count). A timestamped entry is written to `Clank-deletion-log.txt` in your Documents folder for audit purposes.
 
 ---
 
@@ -293,7 +293,7 @@ Last updated: 2026-03-08 (v0.16.1)
 
 ### Changes
 - **Privacy Policy link in Settings** — The Privacy section now includes a "View Privacy Policy →" link. Clicking it writes the latest policy to your Documents folder and opens it in your default text editor. The policy is always up to date with the installed version.
-- **Updated privacy policy** — Rewritten to reflect the current state of the app: local-first by design, clear acknowledgment that cloud provider integrations (Anthropic, Google, OpenAI) send data directly to those providers, and an explicit note that LlamaTalk cannot control or guarantee what third-party providers do with that data. Links to each provider's own privacy policy are included.
+- **Updated privacy policy** — Rewritten to reflect the current state of the app: local-first by design, clear acknowledgment that cloud provider integrations (Anthropic, Google, OpenAI) send data directly to those providers, and an explicit note that Clank cannot control or guarantee what third-party providers do with that data. Links to each provider's own privacy policy are included.
 
 ---
 
@@ -314,7 +314,7 @@ Last updated: 2026-03-08 (v0.16.1)
 ## v0.7.0
 
 ### New Features
-- **Cloud AI provider support** — LlamaTalk can now connect to Anthropic (Claude), Google (Gemini), and OpenAI alongside your local Ollama setup. The app remains entirely local — API keys are stored on your device and calls go directly from the app to the provider with no intermediate server.
+- **Cloud AI provider support** — Clank can now connect to Anthropic (Claude), Google (Gemini), and OpenAI alongside your local Ollama setup. The app remains entirely local — API keys are stored on your device and calls go directly from the app to the provider with no intermediate server.
 - **API Providers section in Settings** — A new settings section lets you toggle each cloud provider on or off and paste your API key. Keys are saved with your other settings and never leave your machine except as part of the direct API call to that provider.
 - **Cloud models in the model selector** — Once a provider is enabled and a key is saved, its models appear in the model dropdown under a labeled group (Anthropic, Google, or OpenAI) alongside your local Ollama models.
 - **Privacy notice updates dynamically** — The privacy notice in Settings now reflects which providers are active. If only Ollama is in use, it confirms messages stay local. If cloud providers are enabled, it names them explicitly so you always know where messages are going.
@@ -347,21 +347,21 @@ Last updated: 2026-03-08 (v0.16.1)
 ## v0.5.9
 
 ### Changes
-- **Llama Assistant responsive text** — Text in the Llama Assistant chat panel and input bar now scales proportionally as you resize the window. Dragging the window larger increases the font size smoothly; dragging it smaller reduces it. The drag handle and controls remain at a fixed size.
+- **Clank Assistant responsive text** — Text in the Clank Assistant chat panel and input bar now scales proportionally as you resize the window. Dragging the window larger increases the font size smoothly; dragging it smaller reduces it. The drag handle and controls remain at a fixed size.
 
 ---
 
 ## v0.5.8
 
 ### Changes
-- **Llama Assistant input placeholder** — The chat input in the Llama Assistant now always reads "Ask Llama Assistant…" instead of adapting to the model display name. Keeps the assistant's identity clear and consistent regardless of which model is selected.
+- **Clank Assistant input placeholder** — The chat input in the Clank Assistant now always reads "Ask Clank Assistant…" instead of adapting to the model display name. Keeps the assistant's identity clear and consistent regardless of which model is selected.
 
 ---
 
 ## v0.5.7
 
 ### Changes
-- **Llama Assistant reflects model display name** — The Llama Assistant window now shows the model display name (nickname) set in Settings, both in the input placeholder and in the conversation log. Previously the assistant always fell back to the raw model ID. Changes to the display name are reflected immediately after saving Settings, with no need to close and reopen the assistant.
+- **Clank Assistant reflects model display name** — The Clank Assistant window now shows the model display name (nickname) set in Settings, both in the input placeholder and in the conversation log. Previously the assistant always fell back to the raw model ID. Changes to the display name are reflected immediately after saving Settings, with no need to close and reopen the assistant.
 
 ---
 
@@ -376,15 +376,15 @@ Last updated: 2026-03-08 (v0.16.1)
 ## v0.5.5
 
 ### Changes
-- **App renamed to LlamaTalk** — The app, installer, tray icon, window title, notifications, and all in-app text have been updated from llamaChat to LlamaTalk. The new name is reflected everywhere: the profile and lock screens, the system tray tooltip and quit menu item, desktop notifications, and the assistant placeholder text.
+- **App renamed to Clank** — The app, installer, tray icon, window title, notifications, and all in-app text have been updated from llamaChat to Clank. The new name is reflected everywhere: the profile and lock screens, the system tray tooltip and quit menu item, desktop notifications, and the assistant placeholder text.
 
 ---
 
 ## v0.5.4
 
 ### Changes
-- **Llama Assistant conversation log** — The assistant now shows a full scrollable conversation history instead of a single speech bubble. All messages (yours and the model's) remain visible in a frosted-glass panel until you click Clear. A thin scrollbar appears on the right side as the conversation grows.
-- **Assistant syncs to main app chat log** — Every completed exchange in the Llama Assistant is recorded as a conversation in the main app's sidebar, titled with the first message. The conversation is marked with a small orange "via Llama Assistant" badge in the chat header so you always know where it came from. Clearing the assistant starts a fresh entry on the next message.
+- **Clank Assistant conversation log** — The assistant now shows a full scrollable conversation history instead of a single speech bubble. All messages (yours and the model's) remain visible in a frosted-glass panel until you click Clear. A thin scrollbar appears on the right side as the conversation grows.
+- **Assistant syncs to main app chat log** — Every completed exchange in the Clank Assistant is recorded as a conversation in the main app's sidebar, titled with the first message. The conversation is marked with a small orange "via Clank Assistant" badge in the chat header so you always know where it came from. Clearing the assistant starts a fresh entry on the next message.
 
 ---
 
@@ -393,7 +393,7 @@ Last updated: 2026-03-08 (v0.16.1)
 ### Changes
 - **Chat display clear button** — A "Clear" button now appears in the chat header whenever a conversation has messages. Clicking it hides all currently displayed messages from view without deleting the conversation or its history. Messages are only ever permanently deleted via the trash icon in the chat list.
 - **Per-message delete** — Hovering over any message (sent or received) reveals a ⋮ menu button. Clicking it shows a "Delete message" option that removes that individual message from the conversation history permanently.
-- **Llama Assistant clear** — The Llama Assistant drag handle now includes a "Clear" button when there is an active conversation or bubble. Clicking it resets the assistant's conversation context and clears the speech bubble.
+- **Clank Assistant clear** — The Clank Assistant drag handle now includes a "Clear" button when there is an active conversation or bubble. Clicking it resets the assistant's conversation context and clears the speech bubble.
 - **Build version label** — The current app version is now shown in small text at the bottom-left of the sidebar.
 
 ---
@@ -401,7 +401,7 @@ Last updated: 2026-03-08 (v0.16.1)
 ## v0.5.2
 
 ### Changes
-- **Llama Assistant thinking indicator** — While waiting for the model to respond, three animated orange dots now pulse inside the speech bubble so you know it's working.
+- **Clank Assistant thinking indicator** — While waiting for the model to respond, three animated orange dots now pulse inside the speech bubble so you know it's working.
 - **Persistent response bubble** — The speech bubble now stays visible after the model finishes speaking. A small × button appears in the top corner of the bubble to dismiss it manually. The bubble clears automatically when a new message is sent.
 
 ---
@@ -409,22 +409,22 @@ Last updated: 2026-03-08 (v0.16.1)
 ## v0.5.1
 
 ### Changes
-- **Llama Assistant button label** — The sidebar assistant button now has an orange "LLAMA ASSISTANT" label above it so users know what it does at a glance. A small "+" badge on the top-right of the icon reinforces that it opens the companion.
+- **Clank Assistant button label** — The sidebar assistant button now has an orange "LLAMA ASSISTANT" label above it so users know what it does at a glance. A small "+" badge on the top-right of the icon reinforces that it opens the companion.
 
 ---
 
 ## v0.5.0
 
 ### Changes
-- **Llama Assistant sidebar toggle** — A small llama icon button in the sidebar header now controls the Llama Assistant. Click to show it, click again to hide it. The icon highlights in the accent color when the assistant is active. This replaces the previous checkbox in Settings — the toggle is now instant with no Save required.
+- **Clank Assistant sidebar toggle** — A small llama icon button in the sidebar header now controls the Clank Assistant. Click to show it, click again to hide it. The icon highlights in the accent color when the assistant is active. This replaces the previous checkbox in Settings — the toggle is now instant with no Save required.
 
 ---
 
 ## v0.4.9
 
 ### New Features
-- **Llama Assistant** — A transparent floating desktop companion. A pixel-art llama character sits directly on your desktop with no window frame or background — just the character. Ask it anything via the single-line input beneath it. While the model responds, a frosted-glass speech bubble appears next to the llama's face and fills word-by-word in sync with the reply. The mouth opens and closes with each word and the eyebrow reacts while thinking. When the response finishes, the bubble disappears. A slim frosted-glass handle bar at the top of the widget can be dragged to move it anywhere on screen and includes a visible × button to hide it. The input placeholder reflects the model display name set in Settings.
-- **Llama Assistant tray toggle** — The system tray right-click menu now includes a "Llama Assistant" checkable item to show or hide the assistant without opening the main app.
+- **Clank Assistant** — A transparent floating desktop companion. A pixel-art llama character sits directly on your desktop with no window frame or background — just the character. Ask it anything via the single-line input beneath it. While the model responds, a frosted-glass speech bubble appears next to the llama's face and fills word-by-word in sync with the reply. The mouth opens and closes with each word and the eyebrow reacts while thinking. When the response finishes, the bubble disappears. A slim frosted-glass handle bar at the top of the widget can be dragged to move it anywhere on screen and includes a visible × button to hide it. The input placeholder reflects the model display name set in Settings.
+- **Clank Assistant tray toggle** — The system tray right-click menu now includes a "Clank Assistant" checkable item to show or hide the assistant without opening the main app.
 
 ---
 
@@ -446,7 +446,7 @@ Last updated: 2026-03-08 (v0.16.1)
 ## v0.4.6
 
 ### Changes
-- **Removed new window button** — The + button that opened additional LlamaTalk windows has been removed. The close button handler is restored to its original simple form.
+- **Removed new window button** — The + button that opened additional Clank windows has been removed. The close button handler is restored to its original simple form.
 
 ---
 
@@ -539,7 +539,7 @@ Last updated: 2026-03-08 (v0.16.1)
   - For users without a profile: Set Up Profile, Import Profile
 - **Export Profile / Import Profile** — Profile data (name, PIN hash, security question hashes, settings) can be exported to a JSON file and imported on another device.
 - **Sign Out vs Clear Data separation** — Sign Out now only locks the app (credentials remain for the next login). Clear Data & Users permanently removes all profile data from the device with a confirmation dialog.
-- **System tray right-click menu** — Tray icon now has a right-click menu with "Quit LlamaTalk" that fully exits the process.
+- **System tray right-click menu** — Tray icon now has a right-click menu with "Quit Clank" that fully exits the process.
 - **Draft-based settings** — All settings are staged as drafts and only applied when the Save Settings button is clicked. Includes: URL, model nickname, theme, scroll speed, text size, tray behavior.
 
 ### Fixes & Improvements
@@ -554,9 +554,9 @@ Last updated: 2026-03-08 (v0.16.1)
 
 ### New Features
 - **System tray minimize** — Close button hides the app to the system tray instead of exiting. App can be restored by clicking the tray icon.
-- **LlamaTalk logo** — Custom SVG llama logo added to the sidebar header and profile screens.
+- **Clank logo** — Custom SVG llama logo added to the sidebar header and profile screens.
 - **Animated llama** — A running llama animation plays in the chat while the model is generating a response.
-- **New window button** — Plus (+) button in the sidebar header opens a new independent LlamaTalk window.
+- **New window button** — Plus (+) button in the sidebar header opens a new independent Clank window.
 - **Escape key stops generation** — Pressing Escape cancels the current model response mid-stream.
 - **Desktop notifications** — When a response completes while the app is not focused, a system notification is sent.
 - **Token counter** — Displays a live estimate of context tokens used (≈ 4 chars per token) in the input area.
@@ -585,7 +585,7 @@ Last updated: 2026-03-08 (v0.16.1)
 
 ---
 
-*This document is updated with each new version of LlamaTalk Desktop.*
+*This document is updated with each new version of Clank Desktop.*
 
 *Last updated: 2026-03-08 (v0.16.1)*
 
@@ -599,14 +599,14 @@ Last updated: 2026-03-08 (v0.16.1)
 
 ### Near-Term Features
 
-- ~~**Project website**~~ — Launched at [llamatalksuite.dev](https://llamatalksuite.dev) ✅
+- ~~**Project website**~~ — Launched at [clanksuite.dev](https://clanksuite.dev) ✅
 - **Linux support** — Arch Linux / Linux builds in development
 
 ---
 
 ### Long-Term Goals
 
-- **Image generation** — Generate and view images directly within LlamaTalk
+- **Image generation** — Generate and view images directly within Clank
 - **Dialogue mode** — A unique character-driven chat interface with a distinct visual style separate from the main chat view
 
 ---

@@ -714,7 +714,7 @@ html[data-theme="light"] .sidebar-version {
   50%      { transform: rotate(-30deg); }
 }
 
-/* ── Llama Assistant ─────────────────────────────────────── */
+/* ── Clank Assistant ─────────────────────────────────────── */
 
 .llama-assistant-wrap {
   display: block;
@@ -742,7 +742,7 @@ html[data-theme="light"] .sidebar-version {
   to   { transform: translateY(-2px); }
 }
 
-/* ── Llama Assistant — transparent floating widget ─────── */
+/* ── Clank Assistant — transparent floating widget ─────── */
 
 .aw-root {
   width: 100vw; height: 100vh;

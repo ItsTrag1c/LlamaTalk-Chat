@@ -312,7 +312,7 @@ export default function AssistantApp() {
       {/* Drag handle — move and close the widget */}
       <div className="aw-drag-handle" data-tauri-drag-region>
         <span className="aw-drag-grip" data-tauri-drag-region>
-          Llama Assistant
+          Clank Assistant
         </span>
         <div className="aw-drag-actions">
           {messages.length > 0 && (
@@ -365,7 +365,7 @@ export default function AssistantApp() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
-            "Ask Llama Assistant…"
+            "Ask Clank Assistant…"
           }
           disabled={!selectedModel || isStreaming}
         />

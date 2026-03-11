@@ -198,7 +198,8 @@ fn open_bundled_doc(app: tauri::AppHandle, filename: String) -> Result<(), Strin
     Ok(())
 }
 
-const CRED_SERVICE: &str = "LlamaTalk Desktop";
+const CRED_SERVICE: &str = "Clank Desktop";
+const LEGACY_CRED_SERVICE: &str = "LlamaTalk Desktop";
 
 const ALLOWED_CRED_KEYS: &[&str] = &[
     "pinHash",
@@ -227,11 +228,26 @@ fn cred_store(key: String, value: String) -> Result<(), String> {
 #[tauri::command]
 fn cred_load(key: String) -> Result<Option<String>, String> {
     validate_cred_key(&key)?;
+    // Try the current service name first
     let entry = keyring::Entry::new(CRED_SERVICE, &key)
         .map_err(|e| e.to_string())?;
     match entry.get_password() {
         Ok(v) => Ok(Some(v)),
-        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(keyring::Error::NoEntry) => {
+            // Fall back to the legacy service name and migrate if found
+            let legacy = keyring::Entry::new(LEGACY_CRED_SERVICE, &key)
+                .map_err(|e| e.to_string())?;
+            match legacy.get_password() {
+                Ok(v) => {
+                    // Migrate: store under new name, delete legacy entry
+                    let _ = entry.set_password(&v);
+                    let _ = legacy.delete_credential();
+                    Ok(Some(v))
+                }
+                Err(keyring::Error::NoEntry) => Ok(None),
+                Err(e) => Err(e.to_string()),
+            }
+        }
         Err(e) => Err(e.to_string()),
     }
 }
@@ -259,7 +275,7 @@ async fn open_new_window(app: tauri::AppHandle) -> Result<(), String> {
         label,
         tauri::WebviewUrl::App("/".into()),
     )
-    .title("LlamaTalk Desktop")
+    .title("Clank Desktop")
     .inner_size(1100.0, 740.0)
     .min_inner_size(720.0, 500.0)
     .center()
@@ -344,9 +360,9 @@ fn check_for_update(current_version: String) -> Result<Option<String>, String> {
         let name = entry.file_name().to_string_lossy().to_string();
         
         #[cfg(target_os = "windows")]
-        let check = name.strip_prefix("LlamaTalk Desktop_").and_then(|rest| rest.strip_suffix("_x64-setup.exe"));
+        let check = name.strip_prefix("Clank Desktop_").and_then(|rest| rest.strip_suffix("_x64-setup.exe"));
         #[cfg(target_os = "macos")]
-        let check = name.strip_prefix("LlamaTalk_Desktop_").and_then(|rest| rest.strip_suffix("_aarch64.dmg"));
+        let check = name.strip_prefix("Clank_Desktop_").and_then(|rest| rest.strip_suffix("_aarch64.dmg"));
         
         if let Some(ver_str) = check {
             if let Some(ver) = parse_semver(ver_str) {
@@ -376,8 +392,8 @@ async fn check_for_update_remote(current_version: String) -> Option<String> {
         .build()
         .ok()?;
     let res = client
-        .get("https://api.github.com/repos/ItsTrag1c/LlamaTalk-Desktop/releases/latest")
-        .header("User-Agent", "LlamaTalk Desktop")
+        .get("https://api.github.com/repos/ItsTrag1c/Clank-Chat/releases/latest")
+        .header("User-Agent", "Clank Desktop")
         .header("Accept", "application/vnd.github+json")
         .send()
         .await
@@ -394,13 +410,13 @@ async fn check_for_update_remote(current_version: String) -> Option<String> {
     #[cfg(target_os = "windows")]
     let installer = assets.iter().find(|a| {
         a["name"].as_str()
-            .map(|n| (n.starts_with("LlamaTalk Desktop_") || n.starts_with("LlamaTalk.Desktop_")) && n.ends_with("_x64-setup.exe"))
+            .map(|n| (n.starts_with("Clank Desktop_") || n.starts_with("Clank.Desktop_")) && n.ends_with("_x64-setup.exe"))
             .unwrap_or(false)
     })?;
     #[cfg(target_os = "macos")]
     let installer = assets.iter().find(|a| {
         a["name"].as_str()
-            .map(|n| n.starts_with("LlamaTalk_Desktop_") && (n.ends_with("_aarch64.dmg") || n.ends_with("_x64.dmg")))
+            .map(|n| n.starts_with("Clank_Desktop_") && (n.ends_with("_aarch64.dmg") || n.ends_with("_x64.dmg")))
             .unwrap_or(false)
     })?;
     
@@ -431,15 +447,15 @@ async fn download_and_install(_app: tauri::AppHandle, url: String, version: Stri
         .map_err(|e| e.to_string())?;
 
     #[cfg(target_os = "windows")]
-    let filename = format!("LlamaTalk Desktop_{}_x64-setup.exe", version);
+    let filename = format!("Clank Desktop_{}_x64-setup.exe", version);
     #[cfg(target_os = "macos")]
-    let filename = format!("LlamaTalk_Desktop_{}_aarch64.dmg", version);
+    let filename = format!("Clank_Desktop_{}_aarch64.dmg", version);
     
     let dest = std::env::temp_dir().join(&filename);
 
     let res = client
         .get(&url)
-        .header("User-Agent", "LlamaTalk Desktop")
+        .header("User-Agent", "Clank Desktop")
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -452,7 +468,7 @@ async fn download_and_install(_app: tauri::AppHandle, url: String, version: Stri
     if !checksum_url.is_empty() {
         let cs_res = client
             .get(&checksum_url)
-            .header("User-Agent", "LlamaTalk Desktop")
+            .header("User-Agent", "Clank Desktop")
             .send()
             .await
             .map_err(|_| "Could not fetch checksum file. Update aborted for safety.".to_string())?;
@@ -508,12 +524,12 @@ fn launch_installer(_app: tauri::AppHandle, path: String) -> Result<(), String> 
         .ok_or_else(|| "Invalid installer path.".to_string())?;
 
     #[cfg(target_os = "windows")]
-    let valid = file_name.starts_with("LlamaTalk") && file_name.ends_with(".exe");
+    let valid = file_name.starts_with("Clank") && file_name.ends_with(".exe");
     #[cfg(target_os = "macos")]
-    let valid = file_name.starts_with("LlamaTalk") && file_name.ends_with(".dmg");
+    let valid = file_name.starts_with("Clank") && file_name.ends_with(".dmg");
 
     if !valid {
-        return Err("Path does not point to a valid LlamaTalk installer.".to_string());
+        return Err("Path does not point to a valid Clank installer.".to_string());
     }
 
     // Ensure the file is in the temp dir or the app's install dir
@@ -953,12 +969,12 @@ pub fn run() {
                 let assistant_item = CheckMenuItem::with_id(
                     app,
                     "toggle-assistant",
-                    "Llama Assistant",
+                    "Clank Assistant",
                     true,
                     false,
                     None::<&str>,
                 )?;
-                let quit_item = MenuItem::with_id(app, "quit", "Quit LlamaTalk Desktop", true, None::<&str>)?;
+                let quit_item = MenuItem::with_id(app, "quit", "Quit Clank Desktop", true, None::<&str>)?;
                 let menu = Menu::with_items(app, &[&assistant_item, &quit_item])?;
 
                 // Store reference so set_assistant_checked command can update it
@@ -972,7 +988,7 @@ pub fn run() {
 
                 TrayIconBuilder::new()
                     .icon(icon)
-                    .tooltip("LlamaTalk Desktop")
+                    .tooltip("Clank Desktop")
                     .menu(&menu)
                     .on_menu_event(|app, event| {
                         match event.id.as_ref() {
@@ -1032,7 +1048,7 @@ pub fn run() {
                 "llama-assistant",
                 tauri::WebviewUrl::App("/".into()),
             )
-            .title("Llama Assistant")
+            .title("Clank Assistant")
             .inner_size(360.0, 280.0)
             .decorations(false)
             .transparent(true)
@@ -1048,7 +1064,7 @@ pub fn run() {
                 "llama-assistant",
                 tauri::WebviewUrl::App("/".into()),
             )
-            .title("Llama Assistant")
+            .title("Clank Assistant")
             .inner_size(360.0, 280.0)
             .decorations(false)
             .always_on_top(true)

@@ -498,7 +498,7 @@ export default function App() {
     closeMinimiesToTrayRef.current = closeMinimiesToTray;
   }, [closeMinimiesToTray]);
 
-  // Persist selected model so the Llama Assistant can read it
+  // Persist selected model so the Clank Assistant can read it
   useEffect(() => {
     if (selectedModel) localStorage.setItem("selectedModel", selectedModel);
   }, [selectedModel]);
@@ -1385,7 +1385,7 @@ export default function App() {
     };
     try {
       const path = await save({
-        defaultPath: "LlamaTalk-profile.json",
+        defaultPath: "Clank-profile.json",
         filters: [{ name: "JSON", extensions: ["json"] }],
       });
       if (path) {
@@ -1485,7 +1485,7 @@ export default function App() {
     if (!window.confirm("Are you absolutely sure? The profile and all credentials will be erased.")) return;
     try {
       const docsDir = await invoke("get_documents_dir");
-      const logPath = docsDir.replace(/[/\\]$/, "") + "/" + "LlamaTalk-deletion-log.txt";
+      const logPath = docsDir.replace(/[/\\]$/, "") + "/" + "Clank-deletion-log.txt";
       const entry = `[${new Date().toISOString()}] Profile "${name}" deleted. ${convCount} conversation${convCount !== 1 ? "s" : ""} retained.\n`;
       let existing = "";
       try { existing = await invoke("read_file_text", { path: logPath }); } catch { existing = ""; }
@@ -1858,7 +1858,7 @@ export default function App() {
           if (granted) {
             const focused = await appWindow.isFocused().catch(() => true);
             if (!focused) {
-              sendNotification({ title: "LlamaTalk Desktop", body: `${modelName || selectedModel} Responded!` });
+              sendNotification({ title: "Clank Desktop", body: `${modelName || selectedModel} Responded!` });
             }
           }
         } catch {
@@ -1986,7 +1986,7 @@ export default function App() {
         {setupStep === 1 ? (
           <div className="profile-card">
             <div className="profile-logo-row"><LogoLlama /></div>
-            <div className="profile-app-name">LlamaTalk</div>
+            <div className="profile-app-name">Clank</div>
             <div className="profile-title">Create Your Profile</div>
             <div className="profile-hint">Step 1 of 2 · Set your name and PIN</div>
             <input className="profile-input" placeholder="Your name" value={setupName} onChange={(e) => setSetupName(e.target.value)} autoFocus />
@@ -1999,7 +1999,7 @@ export default function App() {
           </div>
         ) : (
           <div className="profile-card profile-card-wide">
-            <div className="profile-app-name">LlamaTalk</div>
+            <div className="profile-app-name">Clank</div>
             <div className="profile-title">Security Questions</div>
             <div className="profile-hint">Step 2 of 2 · These let you reset your PIN if forgotten</div>
             <div className="profile-sq-group">
@@ -2030,7 +2030,7 @@ export default function App() {
       <div className="profile-screen">
         <div className="profile-card">
           <div className="profile-logo-row"><LogoLlama /></div>
-          <div className="profile-app-name">LlamaTalk</div>
+          <div className="profile-app-name">Clank</div>
           <div className="profile-title">Connect to Local Server</div>
           <div className="profile-hint">Enter your local model server URL to get started</div>
           <div className="onboard-url-row">
@@ -2076,7 +2076,7 @@ export default function App() {
         {!forgotPinMode ? (
           <div className="profile-card">
             <div className="profile-logo-row"><LogoLlama /></div>
-            <div className="profile-app-name">LlamaTalk</div>
+            <div className="profile-app-name">Clank</div>
             {profileName && <div className="profile-title">Welcome back, {profileName}</div>}
             <div className="profile-hint">Enter your PIN to continue</div>
             <input className="profile-input" type="password" inputMode="numeric" placeholder="PIN" value={lockPin} onChange={(e) => setLockPin(e.target.value.replace(/\D/g, ""))} maxLength={8} autoFocus onKeyDown={(e) => { if (e.key === "Enter") doUnlock(); }} />
@@ -2092,7 +2092,7 @@ export default function App() {
           </div>
         ) : !fpResetMode ? (
           <div className="profile-card">
-            <div className="profile-app-name">LlamaTalk</div>
+            <div className="profile-app-name">Clank</div>
             <div className="profile-title">Reset PIN</div>
             <div className="profile-hint">Answer the security question below to reset your PIN</div>
             <div className="profile-sq-question-row">
@@ -2106,7 +2106,7 @@ export default function App() {
           </div>
         ) : (
           <div className="profile-card">
-            <div className="profile-app-name">LlamaTalk</div>
+            <div className="profile-app-name">Clank</div>
             <div className="profile-title">New PIN</div>
             <div className="profile-hint">Create your new PIN</div>
             <input className="profile-input" type="password" inputMode="numeric" placeholder="New PIN (4+ digits)" value={fpNewPin} onChange={(e) => setFpNewPin(e.target.value.replace(/\D/g, ""))} maxLength={8} autoFocus />
@@ -2123,11 +2123,11 @@ export default function App() {
         <div className="sidebar-header">
           <LogoLlama />
           <div className="sidebar-assistant-wrap">
-            <span className="sidebar-assistant-label">Llama Assistant</span>
+            <span className="sidebar-assistant-label">Clank Assistant</span>
             <button
               className={`sidebar-assistant-btn${showAssistant ? " active" : ""}`}
               onClick={toggleAssistant}
-              title={showAssistant ? "Hide Llama Assistant" : "Show Llama Assistant"}
+              title={showAssistant ? "Hide Clank Assistant" : "Show Clank Assistant"}
             >
               <div className="sidebar-assistant-icon-wrap">
                 <span style={{ fontSize: "17px", lineHeight: 1 }}>🦙</span>
@@ -2571,10 +2571,10 @@ export default function App() {
             </div>
 
             <div className="settings-doc-links">
-              <button className="settings-privacy-link" onClick={() => openDoc("LlamaTalk Goals.pdf")}>
+              <button className="settings-privacy-link" onClick={() => openDoc("Clank Goals.pdf")}>
                 Our Goals →
               </button>
-              <button className="settings-privacy-link" onClick={() => openDoc("LlamaTalk Privacy Policy.pdf")}>
+              <button className="settings-privacy-link" onClick={() => openDoc("Clank Privacy Policy.pdf")}>
                 Privacy Policy →
               </button>
             </div>
@@ -2596,7 +2596,7 @@ export default function App() {
           <div className="chat-header">
             <span className="chat-header-title">{currentConv.title}</span>
             {currentConv.source === "assistant" && (
-              <span className="chat-assistant-badge">via Llama Assistant</span>
+              <span className="chat-assistant-badge">via Clank Assistant</span>
             )}
             {messages.length > 0 && displayFrom < messages.length && (
               <button

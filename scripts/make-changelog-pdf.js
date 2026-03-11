@@ -1,4 +1,4 @@
-// Generates "Changelog LlamaTalk Desktop YYYY-MM-DD.pdf" from the dated .md source.
+// Generates "Changelog Clank Desktop YYYY-MM-DD.pdf" from the dated .md source.
 // Run with: node scripts/make-changelog-pdf.js
 // Requires: pdfkit (npm install pdfkit --save-dev)
 
@@ -7,8 +7,8 @@ import { createWriteStream, readFileSync } from "fs";
 
 const _d = new Date();
 const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`; // YYYY-MM-DD local
-const SRC  = `E:\\LlamaTalk Files\\External Documents\\Changelog LlamaTalk Desktop ${today}.md`;
-const DEST = `E:\\LlamaTalk Files\\External Documents\\Changelog LlamaTalk Desktop ${today}.pdf`;
+const SRC  = `E:\\LlamaTalk Files\\External Documents\\Changelog Clank Desktop ${today}.md`;
+const DEST = `E:\\LlamaTalk Files\\External Documents\\Changelog Clank Desktop ${today}.pdf`;
 
 const content = readFileSync(SRC, "utf-8");
 const lines   = content.split("\n");

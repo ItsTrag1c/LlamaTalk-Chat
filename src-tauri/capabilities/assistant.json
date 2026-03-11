@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "assistant",
-  "description": "Capability for the Llama Assistant floating window",
+  "description": "Capability for the Clank Assistant floating window",
   "windows": ["llama-assistant"],
   "permissions": [
     "core:default",

@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    llamachatv1_lib::run()
+    clankchat_lib::run()
 }
