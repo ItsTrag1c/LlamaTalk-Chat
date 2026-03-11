@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, chmodSync } from "fs";
 import { dirname, join } from "path";
 import { createHash, timingSafeEqual, pbkdf2Sync, randomBytes, createCipheriv, createDecipheriv } from "crypto";
 import { homedir } from "os";
@@ -86,12 +86,15 @@ export function loadConfig() {
 }
 
 function applyFilePermissions(filePath) {
-  if (process.platform !== "win32") return;
   try {
-    execSync(
-      `icacls "${filePath}" /inheritance:r /grant:r "${process.env.USERNAME}:F"`,
-      { stdio: "ignore" }
-    );
+    if (process.platform === "win32") {
+      execSync(
+        `icacls "${filePath}" /inheritance:r /grant:r "${process.env.USERNAME}:F"`,
+        { stdio: "ignore" }
+      );
+    } else {
+      chmodSync(filePath, 0o600);
+    }
   } catch { /* non-fatal */ }
 }
 
@@ -259,6 +262,7 @@ export function pinRequired(config) {
 function deepMerge(target, source) {
   const out = { ...target };
   for (const key of Object.keys(source)) {
+    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
     if (source[key] === null) continue;
     if (
       source[key] !== null &&
