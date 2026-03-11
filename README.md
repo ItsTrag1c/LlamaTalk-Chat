@@ -98,7 +98,7 @@ clank --version                          Print version and exit
 | `/update` | Check for and install the latest version |
 | `/settings` | Show current config |
 | `/set ollama-url <url>` | Update Ollama server URL |
-| `/set api-key <provider> <key>` | Set a cloud API key (anthropic / google / openai) |
+| `/set api-key <provider> [key]` | Set a cloud API key (anthropic / google / openai / opencode) — prompts with masked input if key omitted |
 | `/set provider enable\|disable <p>` | Toggle a cloud provider |
 | `/set prompt [model]` | Edit system prompt for a model |
 | `/set nick <name>` | Set a display nickname for the current model |

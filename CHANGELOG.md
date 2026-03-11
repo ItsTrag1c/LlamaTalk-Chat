@@ -1,6 +1,22 @@
 # Changelog — Clank Chat CLI
 
-Last updated: 2026-03-10 (v0.9.14)
+Last updated: 2026-03-10 (v0.9.16)
+
+---
+
+## v0.9.16 — 2026-03-10
+
+### Security
+- **`/set api-key` masked input** — `/set api-key` now prompts with masked input when the key is omitted from the command, preventing the key from appearing in terminal scrollback history.
+- **PIN attempt counter persisted across restarts** — Failed PIN attempts are now tracked on disk. 10 failures within a 30-minute window triggers a lockout, even if the app is restarted between attempts.
+- **`opencode` added to config import validation** — The `opencode` provider is now included in the ALLOWED_PROVIDERS list for `/import`, so configs with OpenCode keys pass validation.
+- **Update batch filename randomized** — The temporary batch file used by `/update` now includes a random hex suffix, preventing predictable filenames in the temp directory.
+
+---
+
+## v0.9.15 — 2026-03-10
+
+*(No public changelog entry)*
 
 ---
 
@@ -439,5 +455,5 @@ Initial release of ClankCLI, the terminal companion to Clank Chat.
 
 ---
 
-Last updated: 2026-03-08 (v0.9.13)
+Last updated: 2026-03-10 (v0.9.16)
 
