@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync } from "fs";
 import { dirname, join } from "path";
 import { createHash, timingSafeEqual, pbkdf2Sync, randomBytes, createCipheriv, createDecipheriv } from "crypto";
 import { homedir } from "os";
@@ -27,20 +27,40 @@ const DEFAULTS = {
   inactivityTimeout: 30,
 };
 
+function migrateConfigDir() {
+  const appData = process.env.APPDATA;
+  if (appData) {
+    const oldDir = join(appData, "LlamaTalkCLI");
+    const newDir = join(appData, "ClankCLI");
+    if (existsSync(oldDir) && !existsSync(newDir)) {
+      cpSync(oldDir, newDir, { recursive: true });
+    }
+  } else {
+    const oldDir = join(homedir(), ".llamatalkcli");
+    const newDir = join(homedir(), ".clankcli");
+    if (existsSync(oldDir) && !existsSync(newDir)) {
+      cpSync(oldDir, newDir, { recursive: true });
+    }
+  }
+}
+
+// Run migration once on import
+migrateConfigDir();
+
 export function getConfigPath() {
   const appData = process.env.APPDATA;
   if (appData) {
-    return join(appData, "LlamaTalkCLI", "config.json");
+    return join(appData, "ClankCLI", "config.json");
   }
-  return join(homedir(), ".llamatalkcli", "config.json");
+  return join(homedir(), ".clankcli", "config.json");
 }
 
 export function getHistoryPath() {
   const appData = process.env.APPDATA;
   if (appData) {
-    return join(appData, "LlamaTalkCLI", "history.json");
+    return join(appData, "ClankCLI", "history.json");
   }
-  return join(homedir(), ".llamatalkcli", "history.json");
+  return join(homedir(), ".clankcli", "history.json");
 }
 
 export function loadConfig() {
@@ -185,6 +205,10 @@ export function isFirstRun(config) {
 }
 
 function legacyHashPin(pin) {
+  return createHash("sha256").update("clankcli-pin-salt" + pin).digest("hex");
+}
+
+function legacyHashPinOld(pin) {
   return createHash("sha256").update("llamatalkcli-pin-salt" + pin).digest("hex");
 }
 
@@ -210,10 +234,13 @@ export function verifyPin(pin, hash) {
     return timingSafeEqual(computed, stored);
   }
   // Legacy SHA-256 — auto-migrated to PBKDF2 on next successful unlock
-  const computed = Buffer.from(legacyHashPin(pin), "hex");
+  // Check both new and old legacy salt for backward compatibility
   const stored = Buffer.from(hash, "hex");
-  if (computed.length !== stored.length) return false;
-  return timingSafeEqual(computed, stored);
+  const computedNew = Buffer.from(legacyHashPin(pin), "hex");
+  if (computedNew.length === stored.length && timingSafeEqual(computedNew, stored)) return true;
+  const computedOld = Buffer.from(legacyHashPinOld(pin), "hex");
+  if (computedOld.length === stored.length && timingSafeEqual(computedOld, stored)) return true;
+  return false;
 }
 
 export function pinRequired(config) {

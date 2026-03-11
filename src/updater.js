@@ -1,7 +1,7 @@
 import { createWriteStream } from "fs";
 import { createHash } from "crypto";
 
-const GITHUB_REPO = "ItsTrag1c/LlamaTalk-CLI";
+const GITHUB_REPO = "ItsTrag1c/Clank-Chat";
 
 const ORANGE = "\x1b[38;5;208m";
 const RESET  = "\x1b[0m";
@@ -31,7 +31,7 @@ export async function fetchLatestRelease() {
     {
       headers: {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "LlamaTalkCLI",
+        "User-Agent": "ClankCLI",
       },
     }
   );
@@ -45,7 +45,7 @@ export async function fetchLatestRelease() {
   const assets = data.assets ?? [];
 
   // The standalone versioned EXE (not the setup installer)
-  const exeAsset = assets.find((a) => /^LlamaTalkCLI_[\d.]+\.exe$/.test(a.name));
+  const exeAsset = assets.find((a) => /^ClankCLI_[\d.]+\.exe$/.test(a.name));
   if (!exeAsset) return null;
 
   const checksumAsset = assets.find((a) => a.name === "checksums.txt");
@@ -62,7 +62,7 @@ export async function fetchLatestRelease() {
 // Returns the SHA-256 hex digest of the downloaded bytes.
 export async function downloadExe(url, destPath, totalBytes) {
   const res = await fetch(url, {
-    headers: { "User-Agent": "LlamaTalkCLI" },
+    headers: { "User-Agent": "ClankCLI" },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 

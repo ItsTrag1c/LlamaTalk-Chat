@@ -7,7 +7,7 @@ import { loadConfig, saveConfig, isFirstRun, pinRequired, verifyPin, needsPinMig
 import { runOnboarding } from "./src/onboarding.js";
 import { runChat } from "./src/chat.js";
 import { sendMessage, detectBackend, getOllamaModels, getOpenAICompatModels, getRunningOllamaModels, getAllLocalModels } from "./src/api.js";
-import { runInstall, runUninstall, ensureLlamaCmd } from "./src/install.js";
+import { runInstall, runUninstall, ensureClankCmd } from "./src/install.js";
 import { fetchLatestRelease } from "./src/updater.js";
 
 const VERSION = "0.9.14";
@@ -67,10 +67,10 @@ function parseArgs(argv) {
 
 function printHelp() {
   console.log(`
-${ORANGE}${BOLD}LlamaTalk Chat CLI${RESET} v${VERSION}  —  Chat with local and cloud AI from the terminal
+${ORANGE}${BOLD}Clank Chat CLI${RESET} v${VERSION}  —  Chat with local and cloud AI from the terminal
 
 ${BOLD}Usage${RESET}
-  llamatalkcli [options] [message]
+  clankcli [options] [message]
 
 ${BOLD}Options${RESET}
   ${ORANGE}-v, --version${RESET}             Print version and exit
@@ -79,17 +79,17 @@ ${BOLD}Options${RESET}
   ${ORANGE}-M, --message <text>${RESET}      Send a one-shot message and exit (non-interactive)
   ${ORANGE}    --word-delay <ms>${RESET}     Override word-by-word delay (0–500)
   ${ORANGE}    --no-history${RESET}          Don't load or save conversation history
-  ${ORANGE}    --no-banner${RESET}           Skip the llama banner
-  ${ORANGE}    --install${RESET}             Add 'llama' shorthand and shell integration
+  ${ORANGE}    --no-banner${RESET}           Skip the banner
+  ${ORANGE}    --install${RESET}             Add 'clank' shorthand and shell integration
   ${ORANGE}    --uninstall${RESET}           Remove shell integration added by --install
 
 ${BOLD}Examples${RESET}
-  llamatalkcli                         Start interactive chat
-  llamatalkcli -m llama3.2             Chat using a specific model
-  llamatalkcli "What is 2+2?"          One-shot question, print answer, exit
-  llamatalkcli -m gpt-4o "Explain..."  One-shot with a cloud model
-  llamatalkcli --no-history            Chat without saving history
-  llamatalkcli --word-delay 0          Instant response (no word delay)
+  clankcli                         Start interactive chat
+  clankcli -m llama3.2             Chat using a specific model
+  clankcli "What is 2+2?"          One-shot question, print answer, exit
+  clankcli -m gpt-4o "Explain..."  One-shot with a cloud model
+  clankcli --no-history            Chat without saving history
+  clankcli --word-delay 0          Instant response (no word delay)
 
 ${BOLD}Slash commands (interactive mode)${RESET}
   /help       Full command reference
@@ -166,7 +166,7 @@ async function runOneShot(message, config) {
 async function authenticate(config) {
   if (!pinRequired(config)) return null;
 
-  console.log(ORANGE + "\nLlamaTalk Chat CLI" + DIM + `  v${VERSION}` + RESET);
+  console.log(ORANGE + "\nClank Chat CLI" + DIM + `  v${VERSION}` + RESET);
 
   let attempts = 0;
   const maxAttempts = 3;
@@ -217,7 +217,7 @@ async function reAuth(config) {
 // Main
 // ---------------------------------------------------------------------------
 async function main() {
-  ensureLlamaCmd(); // auto-write llama.cmd next to EXE on every startup
+  ensureClankCmd(); // auto-write clank.cmd next to EXE on every startup
 
   const args = parseArgs(process.argv.slice(2));
 
@@ -250,7 +250,7 @@ async function main() {
   // One-shot mode (non-interactive) — skip onboarding, PIN, banner, update check
   if (args.message) {
     if (isFirstRun(config)) {
-      console.error(RED + "Error: run 'llamatalkcli' interactively first to complete setup." + RESET);
+      console.error(RED + "Error: run 'clankcli' interactively first to complete setup." + RESET);
       process.exit(1);
     }
     const pin = await authenticate(config);

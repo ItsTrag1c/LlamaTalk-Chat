@@ -9,7 +9,7 @@ import { printBanner } from "./llama.js";
 import { parseSemver, semverGt, fetchLatestRelease, downloadExe } from "./updater.js";
 
 function isWritableDir(dir) {
-  const probe = join(dir, `.llamatalkcli-probe-${Date.now()}.tmp`);
+  const probe = join(dir, `.clankcli-probe-${Date.now()}.tmp`);
   try {
     writeFileSync(probe, "", { flag: "wx" });
     unlinkSync(probe);
@@ -256,7 +256,7 @@ export async function handleCommand(line, config, rl, messages, version = "", en
   // /help
   if (cmd === "/help") {
     console.log(`
-${ORANGE}${BOLD}LlamaTalkCLI Commands${RESET}
+${ORANGE}${BOLD}ClankCLI Commands${RESET}
 
 ${BOLD}Chat${RESET}
   ${ORANGE}/model${RESET}                         Show current model
@@ -291,7 +291,7 @@ ${BOLD}Data${RESET}
 
 ${BOLD}Other${RESET}
   ${ORANGE}/update${RESET}                        Check for and install a newer version
-  ${ORANGE}/quit${RESET} or ${ORANGE}/exit${RESET}                 Exit LlamaTalkCLI
+  ${ORANGE}/quit${RESET} or ${ORANGE}/exit${RESET}                 Exit ClankCLI
 `);
     return { handled: true };
   }
@@ -707,7 +707,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
 
   // /export [path]
   if (cmd === "/export") {
-    const dest = args[0] || join(homedir(), "Desktop", "llamatalkcli-config.json");
+    const dest = args[0] || join(homedir(), "Desktop", "clankcli-config.json");
     // Strip sensitive keys
     const exported = { ...config };
     delete exported.pinHash;
@@ -804,7 +804,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
       return { handled: true };
     }
     const isExe = !!process.pkg;
-    const installDir = isExe ? dirname(process.execPath) : join(homedir(), "LlamaTalkCLI");
+    const installDir = isExe ? dirname(process.execPath) : join(homedir(), "ClankCLI");
 
     // Step 1: Check local install dir for a pre-placed versioned EXE
     process.stdout.write(DIM + "  Checking for updates..." + RESET);
@@ -813,7 +813,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     try {
       const files = readdirSync(installDir);
       for (const file of files) {
-        const match = file.match(/^LlamaTalkCLI_(\d+\.\d+\.\d+)\.exe$/);
+        const match = file.match(/^ClankCLI_(\d+\.\d+\.\d+)\.exe$/);
         if (!match) continue;
         const ver = parseSemver(match[1]);
         if (!ver) continue;
@@ -836,18 +836,18 @@ ${DIM}Config: ${getConfigPath()}${RESET}
         return { handled: true };
       }
       const needsElevation = !isWritableDir(installDir);
-      const batPath = join(tmpdir(), "llamatalkcli-update.bat");
+      const batPath = join(tmpdir(), "clankcli-update.bat");
       const currentExe = process.execPath;
       const bat = [
         "@echo off",
         "ping -n 3 127.0.0.1 > nul",
         `copy /Y "${localBest.path}" "${currentExe}"`,
-        `del /Q "${installDir}\\LlamaTalkCLI_*.exe" 2>nul`,
+        `del /Q "${installDir}\\ClankCLI_*.exe" 2>nul`,
         `del "%~f0"`,
       ].join("\r\n");
       writeFileSync(batPath, bat, "utf8");
       if (needsElevation) console.log(DIM + "  You may see a UAC prompt." + RESET);
-      console.log(ORANGE + `\n  Installing v${localBest.ver}... LlamaTalkCLI will close now.\n` + RESET);
+      console.log(ORANGE + `\n  Installing v${localBest.ver}... ClankCLI will close now.\n` + RESET);
       spawnUpdateBat(batPath, needsElevation);
       process.exit(0);
     }
@@ -863,13 +863,13 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     }
 
     if (!release) {
-      process.stdout.write("\r" + GREEN + `  LlamaTalkCLI is up to date (v${version}).` + RESET + "          \n");
+      process.stdout.write("\r" + GREEN + `  ClankCLI is up to date (v${version}).` + RESET + "          \n");
       return { handled: true };
     }
 
     const remoteVer = parseSemver(release.version);
     if (!remoteVer || !semverGt(remoteVer, currentVer)) {
-      process.stdout.write("\r" + GREEN + `  LlamaTalkCLI is up to date (v${version}).` + RESET + "          \n");
+      process.stdout.write("\r" + GREEN + `  ClankCLI is up to date (v${version}).` + RESET + "          \n");
       return { handled: true };
     }
 
@@ -883,9 +883,9 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     }
 
     const needsElevation = !isWritableDir(installDir);
-    const exeName = `LlamaTalkCLI_${release.version}.exe`;
+    const exeName = `ClankCLI_${release.version}.exe`;
     const destPath = needsElevation ? join(tmpdir(), exeName) : join(installDir, exeName);
-    console.log(ORANGE + `\n  Downloading LlamaTalkCLI v${release.version} (${release.sizeMB} MB)...` + RESET);
+    console.log(ORANGE + `\n  Downloading ClankCLI v${release.version} (${release.sizeMB} MB)...` + RESET);
 
     let actualHash;
     try {
@@ -898,7 +898,7 @@ ${DIM}Config: ${getConfigPath()}${RESET}
     // Verify checksum if available
     if (release.checksumUrl) {
       try {
-        const csRes = await fetch(release.checksumUrl, { headers: { "User-Agent": "LlamaTalkCLI" } });
+        const csRes = await fetch(release.checksumUrl, { headers: { "User-Agent": "ClankCLI" } });
         if (csRes.ok) {
           const csText = await csRes.text();
           const line = csText.split("\n").find((l) => l.includes(exeName));
@@ -914,19 +914,19 @@ ${DIM}Config: ${getConfigPath()}${RESET}
       }
     }
 
-    const batPath = join(tmpdir(), "llamatalkcli-update.bat");
+    const batPath = join(tmpdir(), "clankcli-update.bat");
     const currentExe = process.execPath;
     const batLines = [
       "@echo off",
       "ping -n 3 127.0.0.1 > nul",
       `copy /Y "${destPath}" "${currentExe}"`,
-      `del /Q "${installDir}\\LlamaTalkCLI_*.exe" 2>nul`,
+      `del /Q "${installDir}\\ClankCLI_*.exe" 2>nul`,
     ];
     if (needsElevation) batLines.push(`del /Q "${destPath}" 2>nul`);
     batLines.push(`del "%~f0"`);
     writeFileSync(batPath, batLines.join("\r\n"), "utf8");
     if (needsElevation) console.log(DIM + "  You may see a UAC prompt." + RESET);
-    console.log(ORANGE + `\n  Installing v${release.version}... LlamaTalkCLI will close now.\n` + RESET);
+    console.log(ORANGE + `\n  Installing v${release.version}... ClankCLI will close now.\n` + RESET);
     spawnUpdateBat(batPath, needsElevation);
     process.exit(0);
   }

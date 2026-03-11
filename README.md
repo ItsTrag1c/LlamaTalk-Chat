@@ -1,29 +1,29 @@
-# LlamaTalk Chat CLI
+# Clank Chat CLI
 
 > Chat with local and cloud AI from any terminal window on Windows.
 
-LlamaTalk Chat CLI is the terminal version of LlamaTalk Chat — a standalone Windows app for chatting with [Ollama](https://ollama.com/) models and cloud AI providers — Anthropic Claude, Google Gemini, OpenAI GPT, and OpenCode. No browser. No Node.js required. Just type `llama`.
+Clank Chat CLI is the terminal version of Clank Chat — a standalone Windows app for chatting with [Ollama](https://ollama.com/) models and cloud AI providers — Anthropic Claude, Google Gemini, OpenAI GPT, and OpenCode. No browser. No Node.js required. Just type `clank`.
 
 ---
 
 ## Install
 
 ```powershell
-irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-Chat/cli/install.ps1 | iex
+irm https://raw.githubusercontent.com/ItsTrag1c/Clank-Chat/cli/install.ps1 | iex
 ```
 
-Run this in PowerShell to download and install the latest release. Open a new terminal and type `llama`.
+Run this in PowerShell to download and install the latest release. Open a new terminal and type `clank`.
 
 ---
 
 ## Download
 
-**[→ Latest Release](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest)**
+**[→ Latest Release](https://github.com/ItsTrag1c/Clank-Chat/releases/latest)**
 
 | File | Description |
 |------|-------------|
-| `LlamaTalk CLI_x.y.z_setup.exe` | Windows installer — installs to Program Files, adds `llama` to PATH |
-| `LlamaTalkCLI_x.y.z.exe` | Standalone EXE — run anywhere, no admin rights needed |
+| `Clank CLI_x.y.z_setup.exe` | Windows installer — installs to Program Files, adds `clank` to PATH |
+| `ClankCLI_x.y.z.exe` | Standalone EXE — run anywhere, no admin rights needed |
 | `checksums.txt` | SHA-256 checksums for verification |
 
 ---
@@ -40,7 +40,7 @@ Run this in PowerShell to download and install the latest release. Open a new te
 - **Conversation history** — persists across sessions, encrypted when PIN is set, clears on exit
 - **Per-model system prompts** — set a different base prompt for each model
 - **Self-updating** — `/update` checks GitHub and downloads the latest version automatically
-- **One-shot mode** — `llama "your question"` for scripting and pipelines
+- **One-shot mode** — `clank "your question"` for scripting and pipelines
 - **Esc to cancel** — press Esc mid-stream to stop generation; partial responses are preserved
 - **Temperature control** — `/temp 0.0–1.0` applies to all providers
 - **Zero runtime dependencies** — single ~36 MB EXE includes the Node.js runtime
@@ -52,22 +52,22 @@ Run this in PowerShell to download and install the latest release. Open a new te
 ### Option A — PowerShell One-Liner (Recommended)
 
 ```powershell
-irm https://raw.githubusercontent.com/ItsTrag1c/LlamaTalk-Chat/cli/install.ps1 | iex
+irm https://raw.githubusercontent.com/ItsTrag1c/Clank-Chat/cli/install.ps1 | iex
 ```
 
-No admin rights needed. Installs to `%USERPROFILE%\LlamaTalkCLI\` and adds `llama` to your PATH.
+No admin rights needed. Installs to `%USERPROFILE%\ClankCLI\` and adds `clank` to your PATH.
 
 ### Option B — Installer
 
-1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest)
+1. Download the latest installer from [Releases](https://github.com/ItsTrag1c/Clank-Chat/releases/latest)
 2. Run the installer (UAC prompt will appear)
-3. Open a **new** CMD or PowerShell window and type `llama`
+3. Open a **new** CMD or PowerShell window and type `clank`
 
 ### Option C — Standalone EXE
 
-1. Download `LlamaTalkCLI.exe` from [Releases](https://github.com/ItsTrag1c/LlamaTalk-Chat/releases/latest)
-2. Place it anywhere — `llama.cmd` is auto-created next to it on first run
-3. Run `LlamaTalkCLI.exe` directly, or type `llama` from the same folder
+1. Download `ClankCLI.exe` from [Releases](https://github.com/ItsTrag1c/Clank-Chat/releases/latest)
+2. Place it anywhere — `clank.cmd` is auto-created next to it on first run
+3. Run `ClankCLI.exe` directly, or type `clank` from the same folder
 
 See [INSTALL.md](INSTALL.md) for full setup, update, and uninstall instructions.
 
@@ -76,14 +76,14 @@ See [INSTALL.md](INSTALL.md) for full setup, update, and uninstall instructions.
 ## Usage
 
 ```
-llama                                    Start interactive chat
-llama "What is 2+2?"                     One-shot question and exit
-llama -m llama3.2                        Use a specific model for this session
-llama -m claude-sonnet-4-5 "Explain..."  One-shot with a cloud model
-llama --no-history                       Chat without saving history
-llama --word-delay 0                     Instant output (no animation)
-llama --no-banner                        Skip the ASCII banner (useful in scripts)
-llama --version                          Print version and exit
+clank                                    Start interactive chat
+clank "What is 2+2?"                     One-shot question and exit
+clank -m llama3.2                        Use a specific model for this session
+clank -m claude-sonnet-4-5 "Explain..."  One-shot with a cloud model
+clank --no-history                       Chat without saving history
+clank --word-delay 0                     Instant output (no animation)
+clank --no-banner                        Skip the ASCII banner (useful in scripts)
+clank --version                          Print version and exit
 ```
 
 ---
@@ -117,9 +117,9 @@ llama --version                          Print version and exit
 
 ## Privacy
 
-All settings and conversation history are stored locally at `%APPDATA%\LlamaTalkCLI\`. When a PIN is set, API keys and conversation history are encrypted at rest using AES-256-GCM. Config and history files are locked to your user account. Nothing is collected, tracked, or transmitted anywhere except to your chosen AI provider when you send a message. Cloud API keys are never included in exports.
+All settings and conversation history are stored locally at `%APPDATA%\ClankCLI\`. When a PIN is set, API keys and conversation history are encrypted at rest using AES-256-GCM. Config and history files are locked to your user account. Nothing is collected, tracked, or transmitted anywhere except to your chosen AI provider when you send a message. Cloud API keys are never included in exports.
 
-See our [Privacy Policy](https://llamatalksuite.dev/privacy) for full details.
+See our [Privacy Policy](https://clanksuite.dev/privacy) for full details.
 
 ---
 
@@ -129,4 +129,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-*LlamaTalk Chat CLI is part of the [LlamaTalk Suite](https://llamatalksuite.dev) — Created by [ItsTrag1c](https://github.com/ItsTrag1c) — [MIT License](LICENSE)*
+*Clank Chat CLI is part of the [Clank Suite](https://clanksuite.dev) — Created by [ItsTrag1c](https://github.com/ItsTrag1c) — [MIT License](LICENSE)*

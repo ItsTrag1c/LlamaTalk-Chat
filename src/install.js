@@ -10,10 +10,10 @@ const RESET  = "\x1b[0m";
 const BOLD   = "\x1b[1m";
 const DIM    = "\x1b[2m";
 
-const PS_MARKER = "# LlamaTalkCLI";
+const PS_MARKER = "# ClankCLI";
 
 function getInstallDir() {
-  return process.pkg ? dirname(process.execPath) : join(homedir(), "LlamaTalkCLI");
+  return process.pkg ? dirname(process.execPath) : join(homedir(), "ClankCLI");
 }
 
 function getPsProfilePath() {
@@ -34,10 +34,15 @@ function removeFromPsProfile() {
     const t = line.trim();
     return (
       !t.startsWith(PS_MARKER) &&
+      !t.startsWith("# LlamaTalkCLI") &&
       !t.includes("function llamatalkcli") &&
+      !t.includes("function clankcli") &&
       !t.includes("LlamaTalkCLI.exe") &&
+      !t.includes("ClankCLI.exe") &&
       !t.includes("Set-Alias -Name llama -Value llamatalkcli") &&
-      !t.includes("Set-Alias llama llamatalkcli")
+      !t.includes("Set-Alias llama llamatalkcli") &&
+      !t.includes("Set-Alias -Name clank -Value clankcli") &&
+      !t.includes("Set-Alias clank clankcli")
     );
   });
 
@@ -45,7 +50,7 @@ function removeFromPsProfile() {
     writeFileSync(profilePath, filtered.join("\n"), "utf8");
     console.log(GREEN + `  Removed from PowerShell profile: ${profilePath}` + RESET);
   } else {
-    console.log(DIM + "  No LlamaTalkCLI entries found in PowerShell profile." + RESET);
+    console.log(DIM + "  No ClankCLI entries found in PowerShell profile." + RESET);
   }
 }
 
@@ -110,7 +115,13 @@ function removeFromPath(installDir) {
 // Returns the install directory written by the NSIS installer, or null if not installed.
 function getNsisInstalledDir() {
   try {
-    const result = execSync('reg query "HKLM\\Software\\LlamaTalk CLI" /ve', { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
+    // Check new registry key first, fall back to old one
+    let result;
+    try {
+      result = execSync('reg query "HKLM\\Software\\Clank CLI" /ve', { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
+    } catch {
+      result = execSync('reg query "HKLM\\Software\\LlamaTalk CLI" /ve', { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
+    }
     const match = result.match(/REG_SZ\s+(.+)/);
     return match ? match[1].trim() : null;
   } catch {
@@ -118,64 +129,69 @@ function getNsisInstalledDir() {
   }
 }
 
-// Called on every EXE startup — silently writes llama.cmd next to the EXE so
-// the "llama" shorthand works in CMD immediately after download, no --install needed.
-// Skipped if the NSIS installer already placed llama.cmd in Program Files.
-export function ensureLlamaCmd() {
+// Called on every EXE startup — silently writes clank.cmd next to the EXE so
+// the "clank" shorthand works in CMD immediately after download, no --install needed.
+// Skipped if the NSIS installer already placed clank.cmd in Program Files.
+export function ensureClankCmd() {
   if (!process.pkg) return;
   const currentDir = dirname(process.execPath);
   const nsisDir = getNsisInstalledDir();
-  // NSIS installed to a different location — installer already wrote llama.cmd there
+  // NSIS installed to a different location — installer already wrote clank.cmd there
   if (nsisDir && nsisDir.toLowerCase() !== currentDir.toLowerCase()) return;
-  const cmdPath = join(currentDir, "llama.cmd");
+  const cmdPath = join(currentDir, "clank.cmd");
   try {
-    writeFileSync(cmdPath, `@echo off\r\n"%~dp0LlamaTalkCLI.exe" %*\r\n`, "utf8");
+    writeFileSync(cmdPath, `@echo off\r\n"%~dp0ClankCLI.exe" %*\r\n`, "utf8");
   } catch {
     // Silent — don't fail startup if the directory is read-only
   }
 }
 
 export function runInstall() {
-  console.log(`\n${ORANGE}${BOLD}LlamaTalkCLI — Install${RESET}\n`);
+  console.log(`\n${ORANGE}${BOLD}ClankCLI — Install${RESET}\n`);
 
   const nsisDir = getNsisInstalledDir();
 
   // Always clean up any stale PS profile entries from old installs.
   // The PS profile approach caused "scripts disabled" errors on restricted systems;
-  // llama.cmd in PATH works in both CMD and PowerShell without a profile entry.
+  // clank.cmd in PATH works in both CMD and PowerShell without a profile entry.
   removeFromPsProfile();
 
   if (nsisDir) {
-    // NSIS-installed: installer already wrote llama.cmd to Program Files and added
+    // NSIS-installed: installer already wrote clank.cmd to Program Files and added
     // Program Files to the system PATH. Nothing more to do.
     console.log(GREEN + `  Installed at: ${nsisDir}` + RESET);
-    console.log(DIM + "  'llama' is available in CMD and PowerShell via system PATH." + RESET);
+    console.log(DIM + "  'clank' is available in CMD and PowerShell via system PATH." + RESET);
   } else {
-    // Standalone EXE: write llama.cmd next to EXE and add to user PATH.
+    // Standalone EXE: write clank.cmd next to EXE and add to user PATH.
     const installDir = getInstallDir();
-    const cmdPath = join(installDir, "llama.cmd");
-    writeFileSync(cmdPath, `@echo off\r\n"%~dp0LlamaTalkCLI.exe" %*\r\n`, "utf8");
+    const cmdPath = join(installDir, "clank.cmd");
+    writeFileSync(cmdPath, `@echo off\r\n"%~dp0ClankCLI.exe" %*\r\n`, "utf8");
     console.log(GREEN + `  Created: ${cmdPath}` + RESET);
     addToPath(installDir);
   }
 
   console.log(GREEN + "\n  Setup complete." + RESET);
-  console.log(DIM + "  Open a new CMD or PowerShell window and type 'llama' to start." + RESET);
-  console.log(DIM + `\n  To uninstall: LlamaTalkCLI --uninstall\n` + RESET);
+  console.log(DIM + "  Open a new CMD or PowerShell window and type 'clank' to start." + RESET);
+  console.log(DIM + `\n  To uninstall: ClankCLI --uninstall\n` + RESET);
 }
 
 export function runUninstall() {
-  console.log(`\n${ORANGE}${BOLD}LlamaTalkCLI — Uninstall${RESET}\n`);
+  console.log(`\n${ORANGE}${BOLD}ClankCLI — Uninstall${RESET}\n`);
 
   const installDir = getInstallDir();
 
-  // 1. Remove llama.cmd
-  const cmdPath = join(installDir, "llama.cmd");
+  // 1. Remove clank.cmd (and old llama.cmd if present)
+  const cmdPath = join(installDir, "clank.cmd");
   if (existsSync(cmdPath)) {
     unlinkSync(cmdPath);
     console.log(GREEN + `  Removed: ${cmdPath}` + RESET);
   } else {
-    console.log(DIM + "  llama.cmd not found (already removed)." + RESET);
+    console.log(DIM + "  clank.cmd not found (already removed)." + RESET);
+  }
+  const oldCmdPath = join(installDir, "llama.cmd");
+  if (existsSync(oldCmdPath)) {
+    unlinkSync(oldCmdPath);
+    console.log(GREEN + `  Removed old shorthand: ${oldCmdPath}` + RESET);
   }
 
   // 2. Remove from PS profile

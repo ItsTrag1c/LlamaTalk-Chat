@@ -1,4 +1,4 @@
-# Changelog — LlamaTalk Chat CLI
+# Changelog — Clank Chat CLI
 
 Last updated: 2026-03-10 (v0.9.14)
 
@@ -23,7 +23,7 @@ Last updated: 2026-03-10 (v0.9.14)
 ### Icon & Branding Update (post-release patch — 2026-03-08)
 - **New app icon** — CLI EXE now uses the orange-tinted 🦙 emoji icon with terminal badge overlay, matching the suite-wide icon system.
 - **New banner art** — replaced ASCII block-art llama with braille-dot llama art matching Build CLI's style.
-- **GitHub repo consolidation** — code now lives on `ItsTrag1c/LlamaTalk-Chat` `cli` branch (previously `LlamaTalk-CLI`).
+- **GitHub repo consolidation** — code now lives on `ItsTrag1c/Clank-Chat` `cli` branch (previously `Clank-CLI`).
 
 ### New Provider
 - **OpenCode support** — added OpenCode as a cloud provider. Connects to OpenCode Zen API using OpenAI-compatible streaming. Provides access to 12 models including GPT-5.x, Claude 4.6, Gemini 3.x, MiniMax, Kimi, and Big Pickle — all through a single API key. Configure via onboarding or `/set api-key opencode <key>`.
@@ -92,7 +92,7 @@ Last updated: 2026-03-10 (v0.9.14)
 ## v0.7.3 — 2026-03-04
 
 ### New Features
-- **PowerShell one-liner install** — Run `irm .../install.ps1 | iex` in PowerShell to download and install the latest release with no admin rights needed. Installs to `%USERPROFILE%\LlamaTalkCLI\`, writes the `llama` shorthand, and adds it to your user PATH automatically.
+- **PowerShell one-liner install** — Run `irm .../install.ps1 | iex` in PowerShell to download and install the latest release with no admin rights needed. Installs to `%USERPROFILE%\ClankCLI\`, writes the `clank` shorthand, and adds it to your user PATH automatically.
 
 ### Improvements
 - **`/update` works from Program Files** — When installed to a protected directory like Program Files, `/update` now downloads to a temp folder and elevates the update via a UAC prompt. Previously the update would silently fail due to write permissions.
@@ -110,7 +110,7 @@ Last updated: 2026-03-10 (v0.9.14)
 
 ### Bug Fixes
 - **Fixed streaming responses showing blank text** — Streaming used the browser-style `ReadableStream` API which doesn't work reliably in the standalone EXE. Switched to Node.js native HTTP streams so tokens arrive correctly with all backends including llama.cpp.
-- **`/clear` now clears the terminal screen** — The `/clear` command now wipes the terminal and reprints the LlamaTalkCLI banner, giving you a clean slate instead of just clearing the conversation history.
+- **`/clear` now clears the terminal screen** — The `/clear` command now wipes the terminal and reprints the ClankCLI banner, giving you a clean slate instead of just clearing the conversation history.
 
 ---
 
@@ -118,7 +118,7 @@ Last updated: 2026-03-10 (v0.9.14)
 
 ### New Features
 - **True streaming responses** — Responses now appear token-by-token in real time as the model generates them. No more waiting for the entire response to load before seeing output. Works with all providers: Ollama, Anthropic, Google, and OpenAI.
-- **llama.cpp / OpenAI-compatible server support** — LlamaTalkCLI now auto-detects whether your server is Ollama or an OpenAI-compatible API (llama.cpp, vLLM, etc.). The `/models` command and chat automatically use the correct endpoints.
+- **llama.cpp / OpenAI-compatible server support** — ClankCLI now auto-detects whether your server is Ollama or an OpenAI-compatible API (llama.cpp, vLLM, etc.). The `/models` command and chat automatically use the correct endpoints.
 - **Automatic backend detection on startup** — The server type is detected in the background when the app launches. Changing your server URL via `/set ollama-url` also re-detects the backend type.
 - **Streaming cancellation preserves partial responses** — Pressing Esc mid-stream now keeps the tokens already received in the conversation history instead of discarding the entire response.
 - **Word delay as stream throttle** — The word delay setting now throttles the display of streamed tokens (0 = instant, >0 = buffered at interval) instead of faking streaming after the full response loads.
@@ -140,7 +140,7 @@ Last updated: 2026-03-10 (v0.9.14)
 ## v0.5.5 — 2026-03-03
 
 ### Bug Fixes
-- **Fixed registry error message on startup** — On systems where LlamaTalk CLI is not installed via the Windows installer, a spurious "The system was unable to find the specified registry key or value" error was printed to the terminal on every launch. The registry check is now fully silent as intended.
+- **Fixed registry error message on startup** — On systems where Clank CLI is not installed via the Windows installer, a spurious "The system was unable to find the specified registry key or value" error was printed to the terminal on every launch. The registry check is now fully silent as intended.
 
 ---
 
@@ -161,7 +161,7 @@ Last updated: 2026-03-10 (v0.9.14)
 ## v0.5.2 — 2026-03-03
 
 ### Bug Fixes
-- **Fixed `/update` falsely reporting "up to date"** — When the GitHub update check failed (network error, API rate limit, etc.), the error was silently swallowed and `/update` reported "LlamaTalkCLI is up to date" instead of telling you the check failed. Now shows "Could not check for updates — try again later" when the check fails.
+- **Fixed `/update` falsely reporting "up to date"** — When the GitHub update check failed (network error, API rate limit, etc.), the error was silently swallowed and `/update` reported "ClankCLI is up to date" instead of telling you the check failed. Now shows "Could not check for updates — try again later" when the check fails.
 
 ---
 
@@ -187,7 +187,7 @@ Last updated: 2026-03-10 (v0.9.14)
 ## v0.4.0 — 2026-03-03
 
 ### Updates
-- **GitHub update check at startup** — LlamaTalkCLI now checks GitHub for a newer version in the background while you log in. If one is available, a dim hint appears after the banner: `v0.x.x available — /update to install`.
+- **GitHub update check at startup** — ClankCLI now checks GitHub for a newer version in the background while you log in. If one is available, a dim hint appears after the banner: `v0.x.x available — /update to install`.
 - **`/update` downloads from GitHub** — If no pre-placed versioned EXE is found in the install folder, `/update` fetches the latest release directly from GitHub with a live progress bar. The download is verified with a SHA-256 checksum before the swap takes place.
 
 ### Interface
@@ -229,14 +229,14 @@ Last updated: 2026-03-10 (v0.9.14)
 ## v0.3.5 — 2026-03-03
 
 ### Setup
-- **PowerShell profile entries removed** — `LlamaTalkCLI --install` no longer writes a function or alias to the PowerShell profile. The `llama` command works in both CMD and PowerShell via the system PATH and `llama.cmd` without requiring any profile script, which eliminates the "running scripts is disabled" error that appeared on PowerShell startup. Running `--install` on an existing setup will automatically clean up any previously written profile entries.
+- **PowerShell profile entries removed** — `ClankCLI --install` no longer writes a function or alias to the PowerShell profile. The `clank` command works in both CMD and PowerShell via the system PATH and `clank.cmd` without requiring any profile script, which eliminates the "running scripts is disabled" error that appeared on PowerShell startup. Running `--install` on an existing setup will automatically clean up any previously written profile entries.
 
 ---
 
 ## v0.3.4 — 2026-03-03
 
 ### Setup
-- **PowerShell execution policy set automatically** — Running `LlamaTalkCLI --install` now sets the PowerShell execution policy to `RemoteSigned` for the current user before writing the profile script. This prevents the "running scripts is disabled" error that appeared on PowerShell startup after installing the `llama` shorthand.
+- **PowerShell execution policy set automatically** — Running `ClankCLI --install` now sets the PowerShell execution policy to `RemoteSigned` for the current user before writing the profile script. This prevents the "running scripts is disabled" error that appeared on PowerShell startup after installing the `clank` shorthand.
 
 ---
 
@@ -245,7 +245,7 @@ Last updated: 2026-03-10 (v0.9.14)
 ### Interface
 - **Keyboard shortcuts bar** — A hint line appears before each prompt showing: Enter to send · ↑↓ prev inputs · Ctrl+L clear screen · Ctrl+C exit · /help. Centered to the terminal width.
 - **Clean exit** — Pressing Ctrl+C or typing /quit clears the terminal and shows a clean goodbye message instead of leaving text mid-screen.
-- **New session every run** — Conversation history is cleared on exit. Each time you run `llama`, you start a fresh session. If the app exits unexpectedly, the previous session is available for recovery on the next launch.
+- **New session every run** — Conversation history is cleared on exit. Each time you run `clank`, you start a fresh session. If the app exits unexpectedly, the previous session is available for recovery on the next launch.
 
 ### Banner
 - **Improved header font** — Switched from the Big font to the Slant font. The letters use diagonal connectors (`/` and `\`) that render cleanly in all modern terminals, fixing the visual gap that appeared at the tops of letters.
@@ -255,14 +255,14 @@ Last updated: 2026-03-10 (v0.9.14)
 ## v0.3.2 — 2026-03-03
 
 ### Setup
-- **`llama` shorthand no longer created in download folder** — When LlamaTalk CLI is installed via the Windows installer, the `llama` shorthand is placed in Program Files alongside the app. The app no longer creates a duplicate shorthand file in the folder where the EXE was originally downloaded from.
+- **`llama` shorthand no longer created in download folder** — When Clank CLI is installed via the Windows installer, the `clank` shorthand is placed in Program Files alongside the app. The app no longer creates a duplicate shorthand file in the folder where the EXE was originally downloaded from.
 
 ---
 
 ## v0.3.1 — 2026-03-03
 
 ### Setup
-- **Installer installs to Program Files** — The Windows installer now places LlamaTalk CLI in `Program Files` (64-bit) by default, matching standard Windows app conventions. A UAC prompt will appear during installation. The `llama` shorthand and system PATH are configured automatically by the installer.
+- **Installer installs to Program Files** — The Windows installer now places Clank CLI in `Program Files` (64-bit) by default, matching standard Windows app conventions. A UAC prompt will appear during installation. The `clank` shorthand and system PATH are configured automatically by the installer.
 
 ---
 
@@ -276,15 +276,15 @@ Last updated: 2026-03-10 (v0.9.14)
 ## v0.2.9 — 2026-03-03
 
 ### Setup
-- **Windows installer** — LlamaTalk CLI is now distributed as `LlamaTalk CLI_X.Y.Z_setup.exe`, matching the naming convention of LlamaTalk Desktop. The installer sets up the `llama` shorthand, PowerShell integration, and PATH automatically.
-- **Automatic shell shorthand** — The `llama` command is now available in CMD immediately after first launch, with no extra setup step required.
+- **Windows installer** — Clank CLI is now distributed as `Clank CLI_X.Y.Z_setup.exe`, matching the naming convention of Clank Desktop. The installer sets up the `clank` shorthand, PowerShell integration, and PATH automatically.
+- **Automatic shell shorthand** — The `clank` command is now available in CMD immediately after first launch, with no extra setup step required.
 
 ---
 
 ## v0.2.8 — 2026-03-03
 
 ### Setup
-- **Built-in shell integration** — Run `LlamaTalkCLI --install` to add the `llama` shorthand command in CMD and PowerShell, and ensure the install folder is in your user PATH. Run `LlamaTalkCLI --uninstall` to remove those entries. No separate installer script required.
+- **Built-in shell integration** — Run `ClankCLI --install` to add the `clank` shorthand command in CMD and PowerShell, and ensure the install folder is in your user PATH. Run `ClankCLI --uninstall` to remove those entries. No separate installer script required.
 
 ---
 
@@ -303,14 +303,14 @@ Last updated: 2026-03-10 (v0.9.14)
 - **`/temp` command** — Set response temperature from 0.0 (precise, deterministic) to 1.0 (creative, varied). Type `/temp` to view the current value or `/temp 0.4` to change it. Applies to Ollama, Anthropic, Google, and OpenAI models.
 
 ### Interface
-- CLI EXE now has a custom icon: the LlamaTalk llama icon with an orange terminal badge (`>_`) in the corner.
+- CLI EXE now has a custom icon: the Clank llama icon with an orange terminal badge (`>_`) in the corner.
 
 ---
 
 ## v0.2.5 — 2026-03-03
 
 ### Updates
-- **`/update` command** — Type `/update` to check for a newer version of LlamaTalkCLI. If a newer EXE is found in the install folder, you'll be asked to confirm before it replaces the current version. All settings and conversation history are preserved automatically.
+- **`/update` command** — Type `/update` to check for a newer version of ClankCLI. If a newer EXE is found in the install folder, you'll be asked to confirm before it replaces the current version. All settings and conversation history are preserved automatically.
 
 ---
 
@@ -330,7 +330,7 @@ Last updated: 2026-03-10 (v0.9.14)
 ## v0.2.3 — 2026-03-03
 
 ### Banner
-- Replaced block-letter title with figlet "Big" font ASCII art for **LlamaTalkCLI** — rendered in full orange and automatically centered to the current terminal window width.
+- Replaced block-letter title with figlet "Big" font ASCII art for **ClankCLI** — rendered in full orange and automatically centered to the current terminal window width.
 
 ---
 
@@ -343,14 +343,14 @@ Last updated: 2026-03-10 (v0.9.14)
 - Replaced the ASCII llama art with three orange stars that blink in a 1-2-3 counting pattern (★ · · → ★ ★ · → ★ ★ ★ → · · ·) while the model is responding.
 
 ### Shell
-- `E:\LlamaTalk Files\` added to the Windows user PATH permanently — typing `llama` now works in any new CMD or PowerShell window without running the install script first.
+- `E:\LlamaTalk Files\` added to the Windows user PATH permanently — typing `clank` now works in any new CMD or PowerShell window without running the install script first.
 
 ---
 
 ## v0.2.1 — 2026-03-03
 
 ### Banner
-- Replaced the ASCII llama art in the startup header with large 5-row block-letter text reading **LLAMATALKCLI** — LLAMA in orange, TALKCLI in white. Easier to read at a glance in any terminal.
+- Replaced the ASCII llama art in the startup header with large 5-row block-letter text reading **CLANKCLI** — CLANK in orange, CLI in white. Easier to read at a glance in any terminal.
 
 ---
 
@@ -362,26 +362,26 @@ Last updated: 2026-03-10 (v0.9.14)
 - `-h` / `--help` — print usage reference and exit
 - `-m` / `--model <name>` — use a specific model for the session
 - `-M` / `--message <text>` — one-shot mode: send a message, print the response, and exit
-- Positional argument shorthand: `llamatalkcli "your question"` works without `-M`
+- Positional argument shorthand: `clankcli "your question"` works without `-M`
 - `--no-history` — run without loading or saving conversation history
-- `--no-banner` — suppress the llama banner (useful for scripts)
+- `--no-banner` — suppress the banner (useful for scripts)
 - `--word-delay <ms>` — override word-by-word delay for the session
 
 ### Shell Integration
-- Run `Install-LlamaTalkCLI.ps1` to add `llamatalkcli` and `llama` as commands available in any PowerShell or CMD window. Pass `-UseExe` to run the standalone EXE; `-Uninstall` to remove the integration.
+- Run `Install-ClankCLI.ps1` to add `clankcli` and `clank` as commands available in any PowerShell or CMD window. Pass `-UseExe` to run the standalone EXE; `-Uninstall` to remove the integration.
 
 ### Standalone EXE
 - Standalone Windows EXE available — no Node.js installation required.
 
 ### Version Display
 - App version shown in dim text next to the banner title on launch
-- `llamatalkcli --version` prints the bare version string for scripting
+- `clankcli --version` prints the bare version string for scripting
 
 ---
 
 ## v0.1.0 — 2026-03-03
 
-Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
+Initial release of ClankCLI, the terminal companion to Clank Chat.
 
 ### Chat
 - Full conversational chat from any PowerShell or CMD window
@@ -420,11 +420,11 @@ Initial release of LlamaTalkCLI, the terminal companion to LlamaTalk.
 - Optional PIN protection with SHA-256 + salt hashing
 - PIN frequency: always, 30 days, or never
 - API keys stored in local config file, never exported
-- Config at `%APPDATA%\LlamaTalkCLI\config.json`
+- Config at `%APPDATA%\ClankCLI\config.json`
 
 ### Setup
 - Pure Node.js 18+ — no install required beyond Node
-- Launch via `LlamaTalkCLI.bat` or `node index.js`
+- Launch via `ClankCLI.bat` or `node index.js`
 - Optional standalone `.exe` build via `pkg`
 
 ---

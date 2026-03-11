@@ -59,7 +59,7 @@ async function askMasked(prompt) {
 export async function runOnboarding(rl, config) {
   printBanner();
 
-  console.log(ORANGE + BOLD + "Welcome to LlamaTalkCLI!" + RESET);
+  console.log(ORANGE + BOLD + "Welcome to ClankCLI!" + RESET);
   console.log(DIM + "Let's get you set up. This only takes a moment.\n" + RESET);
 
   // Step 1: Name
@@ -183,7 +183,7 @@ export async function runOnboarding(rl, config) {
 
   // Done
   config.onboardingDone = true;
-  console.log(ORANGE + BOLD + "All set! Starting LlamaTalkCLI...\n" + RESET);
+  console.log(ORANGE + BOLD + "All set! Starting ClankCLI...\n" + RESET);
   return encKey;
 }
 
